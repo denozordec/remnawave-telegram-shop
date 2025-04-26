@@ -366,7 +366,7 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 		return
 	}
 
-	langCode := update.CallbackQuery.From.LanguageCode
+	//langCode := update.CallbackQuery.From.LanguageCode
 
 	isDisabled := true
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
