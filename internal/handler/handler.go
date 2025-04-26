@@ -341,7 +341,7 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 	if config.TrialDays() == 0 {
 		return
 	}
-	//callback := update.CallbackQuery.Message.Message
+	callback := update.CallbackQuery.Message.Message
 	_, err := h.paymentService.ActivateTrial(ctx, update.CallbackQuery.From.ID)
 	langCode := update.CallbackQuery.From.LanguageCode
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
