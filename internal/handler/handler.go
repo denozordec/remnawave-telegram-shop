@@ -354,7 +354,7 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 	if err != nil {
 		slog.Error("Error sending /trial message", err)
 	}
-	callback := update.CallbackQuery.Message.Message
+	//callback := update.CallbackQuery.Message.Message
 
 	customer, err := h.customerRepository.FindByTelegramId(ctx, callback.Chat.ID)
 	if err != nil {
