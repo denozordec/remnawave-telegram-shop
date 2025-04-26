@@ -341,7 +341,7 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 	if config.TrialDays() == 0 {
 		return
 	}
-	callback := update.CallbackQuery.Message.Message
+	//callback := update.CallbackQuery.Message.Message
 	_, err := h.paymentService.ActivateTrial(ctx, update.CallbackQuery.From.ID)
 	langCode := update.CallbackQuery.From.LanguageCode
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
@@ -353,6 +353,38 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 	})
 	if err != nil {
 		slog.Error("Error sending /trial message", err)
+	}
+	callback := update.CallbackQuery.Message.Message
+
+	customer, err := h.customerRepository.FindByTelegramId(ctx, callback.Chat.ID)
+	if err != nil {
+		slog.Error("Error finding customer", err)
+		return
+	}
+	if customer == nil {
+		slog.Error("customer not exist", "chatID", callback.Chat.ID, "error", err)
+		return
+	}
+
+	langCode := update.CallbackQuery.From.LanguageCode
+
+	isDisabled := true
+	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    callback.Chat.ID,
+		MessageID: callback.ID,
+		Text:      buildConnectText(customer, langCode),
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			IsDisabled: &isDisabled,
+		},
+		ReplyMarkup: models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
+			},
+		},
+	})
+
+	if err != nil {
+		slog.Error("Error sending connect message", err)
 	}
 }
 
