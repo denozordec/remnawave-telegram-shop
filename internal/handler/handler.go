@@ -244,7 +244,7 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 
 	if existingCustomer.SubscriptionLink == nil && config.TrialDays() > 0 {
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackTrial},
+			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackActivateTrial},
 		})
 	}
 
