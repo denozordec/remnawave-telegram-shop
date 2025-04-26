@@ -59,6 +59,7 @@ func (h Handler) ReferralCallbackHandler(ctx context.Context, b *bot.Bot, update
 	count, err := h.referralRepository.CountByReferrer(ctx, customer.TelegramID)
 	if err != nil {
 		slog.Error("error counting referrals", err)
+		return
 	}
 	text := fmt.Sprintf(h.translation.GetText(langCode, "referral_text"), count)
 	callbackMessage := update.CallbackQuery.Message.Message
@@ -87,6 +88,7 @@ func (h Handler) StartCommandHandler(ctx context.Context, b *bot.Bot, update *mo
 	existingCustomer, err := h.customerRepository.FindByTelegramId(ctx, update.Message.Chat.ID)
 	if err != nil {
 		slog.Error("error finding customer by telegram id", err)
+		return
 	}
 
 	if existingCustomer == nil {
@@ -107,12 +109,14 @@ func (h Handler) StartCommandHandler(ctx context.Context, b *bot.Bot, update *mo
 				referrerId, err := strconv.ParseInt(code, 10, 64)
 				if err != nil {
 					slog.Error("error parsing referrer id", err)
+					return
 				}
 				_, err = h.customerRepository.FindByTelegramId(ctx, referrerId)
 				if err == nil {
 					_, err := h.referralRepository.Create(ctx, referrerId, existingCustomer.TelegramID)
 					if err != nil {
 						slog.Error("error creating referral", err)
+						return
 					}
 					slog.Info("referral created", "referrerId", referrerId, "refereeId", existingCustomer.TelegramID)
 				}
@@ -142,6 +146,7 @@ func (h Handler) StartCommandHandler(ctx context.Context, b *bot.Bot, update *mo
 
 	if err != nil {
 		slog.Error("Error sending removing reply keyboard", err)
+		return
 	}
 
 	_, err = b.DeleteMessage(ctx, &bot.DeleteMessageParams{
@@ -151,6 +156,7 @@ func (h Handler) StartCommandHandler(ctx context.Context, b *bot.Bot, update *mo
 
 	if err != nil {
 		slog.Error("Error deleting message", err)
+		return
 	}
 
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
@@ -175,6 +181,7 @@ func (h Handler) StartCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 	existingCustomer, err := h.customerRepository.FindByTelegramId(ctx, callback.From.ID)
 	if err != nil {
 		slog.Error("error finding customer by telegram id", err)
+		return
 	}
 
 	if existingCustomer == nil {
@@ -464,6 +471,7 @@ func (h Handler) PaymentCallbackHandler(ctx context.Context, b *bot.Bot, update 
 	customer, err := h.customerRepository.FindByTelegramId(ctx, callback.Chat.ID)
 	if err != nil {
 		slog.Error("Error finding customer", err)
+		return
 	}
 	if customer == nil {
 		slog.Error("customer not exist", "chatID", callback.Chat.ID, "error", err)
@@ -474,6 +482,7 @@ func (h Handler) PaymentCallbackHandler(ctx context.Context, b *bot.Bot, update 
 
 	if err != nil {
 		slog.Error("Error creating payment", err)
+		return
 	}
 
 	langCode := update.CallbackQuery.From.LanguageCode
@@ -500,9 +509,11 @@ func (h Handler) ConnectCommandHandler(ctx context.Context, b *bot.Bot, update *
 	customer, err := h.customerRepository.FindByTelegramId(ctx, update.Message.Chat.ID)
 	if err != nil {
 		slog.Error("Error finding customer", err)
+		return
 	}
 	if customer == nil {
 		slog.Error("customer not exist", "chatID", update.Message.Chat.ID, "error", err)
+		return
 	}
 
 	langCode := update.Message.From.LanguageCode
@@ -532,9 +543,11 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 	customer, err := h.customerRepository.FindByTelegramId(ctx, callback.Chat.ID)
 	if err != nil {
 		slog.Error("Error finding customer", err)
+		return
 	}
 	if customer == nil {
 		slog.Error("customer not exist", "chatID", callback.Chat.ID, "error", err)
+		return
 	}
 
 	langCode := update.CallbackQuery.From.LanguageCode
@@ -573,6 +586,7 @@ func (h Handler) SuccessPaymentHandler(ctx context.Context, b *bot.Bot, update *
 	purchaseId, err := strconv.Atoi(update.Message.SuccessfulPayment.InvoicePayload)
 	if err != nil {
 		slog.Error("Error parsing purchase id", err)
+		return
 	}
 
 	err = h.paymentService.ProcessPurchaseById(int64(purchaseId))
