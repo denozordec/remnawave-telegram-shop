@@ -241,9 +241,9 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 		})
 	}
 
-	inlineKeyboard = append(inlineKeyboard, [][]models.InlineKeyboardButton{
+	/*inlineKeyboard = append(inlineKeyboard, [][]models.InlineKeyboardButton{
 		{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy}},
-	}...)
+	}...)*/
 
 	inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
 
