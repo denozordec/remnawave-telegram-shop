@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-docker-image:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     permissions:
       packages: write
     steps:
@@ -30,15 +30,15 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/remnawave-telegram-shop-bot
           # Set up proper tagging strategy
           tags: |
-            # Always include latest tag
-            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
-            # Use semver tags when Git tag is in semver format
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            # Use the short SHA for non-tag builds
-            type=sha,format=short,prefix=
-            # Include the tag name if it's a tag-triggered build
+            # Всегда ставить latest
+            type=raw,value=latest
+            # Если событие — это тег, добавить версии
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{major}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+            # Для веток или коммитов - короткий SHA
+            type=sha,format=short
+            # Если сборка по тегу - добавляем ещё сам тег
             type=ref,event=tag
 
       - name: Set up Docker Buildx
@@ -52,6 +52,3 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
-            COMMIT=${{ github.sha }}
