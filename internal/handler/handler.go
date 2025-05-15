@@ -3,8 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 	"log/slog"
 	"remnawave-tg-shop-bot/internal/config"
 	"remnawave-tg-shop-bot/internal/cryptopay"
@@ -16,6 +14,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
 )
 
 type Handler struct {
@@ -266,17 +267,15 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 
 	if existingCustomer.SubscriptionLink == nil && config.TrialDays() > 0 {
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackTrial},
+			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackActivateTrial},
 		})
 	}
 
-	inlineKeyboard = append(inlineKeyboard, [][]models.InlineKeyboardButton{
+	/*inlineKeyboard = append(inlineKeyboard, [][]models.InlineKeyboardButton{
 		{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy}},
-	}...)
+	}...)*/
 
-	if existingCustomer.SubscriptionLink != nil && existingCustomer.ExpireAt.After(time.Now()) {
-		inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
-	}
+	inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
 
 	if config.GetReferralDays() > 0 {
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
@@ -320,21 +319,9 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 	if config.TrialDays() == 0 {
 		return
 	}
-	c, err := h.customerRepository.FindByTelegramId(ctx, update.CallbackQuery.From.ID)
-	if err != nil {
-		slog.Error("Error finding customer", err)
-		return
-	}
-	if c == nil {
-		slog.Error("customer not exist", "chatID", update.CallbackQuery.Message.Message.From.ID, "error", err)
-		return
-	}
-	if c.SubscriptionLink != nil {
-		return
-	}
 	callback := update.CallbackQuery.Message.Message
 	langCode := update.CallbackQuery.From.LanguageCode
-	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
 		Text:      h.translation.GetText(langCode, "trial_text"),
@@ -380,6 +367,38 @@ func (h Handler) ActivateTrialCallbackHandler(ctx context.Context, b *bot.Bot, u
 	})
 	if err != nil {
 		slog.Error("Error sending /trial message", err)
+	}
+	//callback := update.CallbackQuery.Message.Message
+
+	customer, err := h.customerRepository.FindByTelegramId(ctx, callback.Chat.ID)
+	if err != nil {
+		slog.Error("Error finding customer", err)
+		return
+	}
+	if customer == nil {
+		slog.Error("customer not exist", "chatID", callback.Chat.ID, "error", err)
+		return
+	}
+
+	//langCode := update.CallbackQuery.From.LanguageCode
+
+	isDisabled := true
+	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    callback.Chat.ID,
+		MessageID: callback.ID,
+		Text:      buildConnectText(customer, langCode),
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			IsDisabled: &isDisabled,
+		},
+		ReplyMarkup: models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
+			},
+		},
+	})
+
+	if err != nil {
+		slog.Error("Error sending connect message", err)
 	}
 }
 
