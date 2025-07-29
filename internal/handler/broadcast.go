@@ -111,9 +111,19 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 	_ = broadcastType
 	
 	// Создаем клавиатуру подтверждения
+	var broadcastTypeStr string
+	switch broadcastType {
+	case 1:
+		broadcastTypeStr = "all"
+	case 2:
+		broadcastTypeStr = "admins"
+	default:
+		broadcastTypeStr = "all"
+	}
+	
 	confirmKeyboard := [][]models.InlineKeyboardButton{
 		{
-			{Text: "✅ Подтвердить", CallbackData: CallbackBroadcastConfirm + ":" + broadcastType.(string)},
+			{Text: "✅ Подтвердить", CallbackData: CallbackBroadcastConfirm + ":" + broadcastTypeStr},
 			{Text: "❌ Отмена", CallbackData: CallbackBroadcastCancel},
 		},
 	}
