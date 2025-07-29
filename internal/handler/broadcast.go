@@ -7,7 +7,9 @@ import (
 	"github.com/go-telegram/bot/models"
 	"log/slog"
 	"remnawave-tg-shop-bot/internal/config"
-	"remnawave-tg-shop-bot/internal/notification"
+	"remnawave-tg-shop-bot/internal/database"
+	"remnawave-tg-shop-bot/internal/translation"
+	"remnawave-tg-shop-bot/utils"
 	"strings"
 )
 
@@ -181,15 +183,13 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 		return
 	}
 	
-	// Создаем сервис рассылки
-	broadcastService := notification.NewBroadcastService(h.customerRepository, b, h.translation)
-	
+	// Отправляем рассылку
 	var err error
 	switch broadcastType {
 	case "all":
-		err = broadcastService.SendBroadcastToAll(ctx, messageText, models.ParseModeHTML)
+		err = h.sendBroadcastToAll(ctx, b, messageText, models.ParseModeHTML)
 	case "admins":
-		err = broadcastService.SendBroadcastToAdmins(ctx, messageText, models.ParseModeHTML)
+		err = h.sendBroadcastToAdmins(ctx, b, messageText, models.ParseModeHTML)
 	}
 	
 	if err != nil {
@@ -255,4 +255,71 @@ func (h Handler) BroadcastCancelHandler(ctx context.Context, b *bot.Bot, update 
 	if err != nil {
 		slog.Error("Error answering callback query", err)
 	}
+}
+
+// sendBroadcastToAll отправляет сообщение всем пользователям
+func (h Handler) sendBroadcastToAll(ctx context.Context, b *bot.Bot, message string, parseMode string) error {
+	customers, err := h.customerRepository.FindAll(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get all customers: %w", err)
+	}
+
+	slog.Info("Starting broadcast to all users", "total_users", len(customers))
+
+	successCount := 0
+	failedCount := 0
+
+	for _, customer := range customers {
+		err := h.sendMessageToCustomer(ctx, b, customer, message, parseMode)
+		if err != nil {
+			slog.Error("Failed to send broadcast message",
+				"customer_id", utils.MaskHalfInt64(customer.ID),
+				"telegram_id", utils.MaskHalfInt64(customer.TelegramID),
+				"error", err)
+			failedCount++
+		} else {
+			successCount++
+		}
+	}
+
+	slog.Info("Broadcast completed",
+		"total_users", len(customers),
+		"success_count", successCount,
+		"failed_count", failedCount)
+
+	return nil
+}
+
+// sendBroadcastToAdmins отправляет сообщение только админам
+func (h Handler) sendBroadcastToAdmins(ctx context.Context, b *bot.Bot, message string, parseMode string) error {
+	adminTelegramID := config.GetAdminTelegramId()
+	
+	// Получаем админа
+	adminCustomer, err := h.customerRepository.FindByTelegramId(ctx, adminTelegramID)
+	if err != nil {
+		return fmt.Errorf("failed to find admin customer: %w", err)
+	}
+
+	if adminCustomer == nil {
+		return fmt.Errorf("admin customer not found")
+	}
+
+	err = h.sendMessageToCustomer(ctx, b, *adminCustomer, message, parseMode)
+	if err != nil {
+		return fmt.Errorf("failed to send message to admin: %w", err)
+	}
+
+	slog.Info("Broadcast to admins completed", "admin_id", utils.MaskHalfInt64(adminCustomer.ID))
+	return nil
+}
+
+// sendMessageToCustomer отправляет сообщение конкретному пользователю
+func (h Handler) sendMessageToCustomer(ctx context.Context, b *bot.Bot, customer database.Customer, message string, parseMode string) error {
+	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    customer.TelegramID,
+		Text:      message,
+		ParseMode: parseMode,
+	})
+
+	return err
 } 

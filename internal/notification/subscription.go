@@ -7,7 +7,6 @@ import (
 	"github.com/go-telegram/bot/models"
 	"log/slog"
 	"remnawave-tg-shop-bot/internal/database"
-	"remnawave-tg-shop-bot/internal/handler"
 	"remnawave-tg-shop-bot/internal/translation"
 	"time"
 )
@@ -89,7 +88,7 @@ func (s *SubscriptionService) sendNotification(ctx context.Context, customer dat
 				{
 					{
 						Text:         s.tm.GetText(customer.Language, "renew_subscription_button"),
-						CallbackData: handler.CallbackBuy,
+						CallbackData: "buy",
 					},
 				},
 			},
