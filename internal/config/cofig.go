@@ -242,10 +242,10 @@ func DetectPlatformFromUpdate(update *models.Update) string {
 	
 	if update.CallbackQuery != nil && update.CallbackQuery.Message != nil {
 		// Проверяем, есть ли WebAppInfo в кнопках сообщения
-		// MaybeInaccessibleMessage может быть Message или InaccessibleMessage
-		if message, ok := update.CallbackQuery.Message.(*models.Message); ok {
-			if message.ReplyMarkup != nil {
-				for _, row := range message.ReplyMarkup.InlineKeyboard {
+		// MaybeInaccessibleMessage содержит поле Message
+		if update.CallbackQuery.Message.Message != nil {
+			if update.CallbackQuery.Message.Message.ReplyMarkup != nil {
+				for _, row := range update.CallbackQuery.Message.Message.ReplyMarkup.InlineKeyboard {
 					for _, button := range row {
 						if button.WebApp != nil {
 							return "mobile"
