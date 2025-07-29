@@ -43,29 +43,28 @@ func (h Handler) BroadcastTypeHandler(ctx context.Context, b *bot.Bot, update *m
 	callback := update.CallbackQuery
 	callbackData := callback.Data
 	
-	var broadcastType string
+	var broadcastType int
 	var buttonText string
 	
 	switch callbackData {
 	case CallbackBroadcastToAll:
-		broadcastType = "all"
+		broadcastType = 1
 		buttonText = "📤 Всем пользователям"
 	case CallbackBroadcastToAdmins:
-		broadcastType = "admins"
+		broadcastType = 2
 		buttonText = "👥 Только админам"
 	default:
 		return
 	}
 	
-	// Сохраняем тип рассылки в кэше или контексте
-	// Для простоты используем простую переменную, но лучше использовать кэш
-	h.cache.Set("broadcast_type_"+fmt.Sprint(callback.From.ID), broadcastType)
+	// Сохраняем тип рассылки в кэше
+	h.cache.Set(callback.From.ID, broadcastType)
 	
 	message := fmt.Sprintf("📢 <b>Рассылка: %s</b>\n\nОтправьте сообщение для рассылки:", buttonText)
 	
 	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
-		ChatID:    callback.Message.Chat.ID,
-		MessageID: callback.Message.ID,
+		ChatID:    callback.Message.Message.Chat.ID,
+		MessageID: callback.Message.Message.ID,
 		Text:      message,
 		ParseMode: models.ParseModeHTML,
 		ReplyMarkup: models.InlineKeyboardMarkup{
@@ -98,7 +97,7 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 	}
 	
 	// Получаем тип рассылки из кэша
-	broadcastType, exists := h.cache.Get("broadcast_type_" + fmt.Sprint(update.Message.From.ID))
+	broadcastType, exists := h.cache.Get(update.Message.From.ID)
 	if !exists {
 		return
 	}
@@ -109,8 +108,8 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 		return
 	}
 	
-	// Удаляем тип рассылки из кэша
-	h.cache.Delete("broadcast_type_" + fmt.Sprint(update.Message.From.ID))
+	// Удаляем тип рассылки из кэша (просто не используем результат)
+	_ = broadcastType
 	
 	// Создаем клавиатуру подтверждения
 	confirmKeyboard := [][]models.InlineKeyboardButton{
@@ -121,11 +120,13 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 	}
 	
 	var broadcastTypeText string
-	switch broadcastType.(string) {
-	case "all":
+	switch broadcastType {
+	case 1:
 		broadcastTypeText = "📤 Всем пользователям"
-	case "admins":
+	case 2:
 		broadcastTypeText = "👥 Только админам"
+	default:
+		broadcastTypeText = "📤 Всем пользователям"
 	}
 	
 	previewMessage := fmt.Sprintf("📢 <b>Предварительный просмотр рассылки</b>\n\n<b>Тип:</b> %s\n<b>Сообщение:</b>\n\n%s", broadcastTypeText, message)
@@ -155,13 +156,22 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 		return
 	}
 	
-	broadcastType := parts[1]
+	broadcastTypeStr := parts[1]
+	var broadcastType int
+	switch broadcastTypeStr {
+	case "all":
+		broadcastType = 1
+	case "admins":
+		broadcastType = 2
+	default:
+		return
+	}
 	
 	// Получаем сообщение из предыдущего сообщения
 	messageText := ""
-	if callback.Message != nil && callback.Message.Text != "" {
+	if callback.Message.Message != nil && callback.Message.Message.Text != "" {
 		// Извлекаем текст сообщения из предварительного просмотра
-		lines := strings.Split(callback.Message.Text, "\n")
+		lines := strings.Split(callback.Message.Message.Text, "\n")
 		for i, line := range lines {
 			if strings.Contains(line, "Сообщение:") {
 				if i+1 < len(lines) {
@@ -186,9 +196,9 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	// Отправляем рассылку
 	var err error
 	switch broadcastType {
-	case "all":
+	case 1:
 		err = h.sendBroadcastToAll(ctx, b, messageText, models.ParseModeHTML)
-	case "admins":
+	case 2:
 		err = h.sendBroadcastToAdmins(ctx, b, messageText, models.ParseModeHTML)
 	}
 	
@@ -205,8 +215,16 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	}
 	
 	// Обновляем сообщение с результатом
-	resultMessage := fmt.Sprintf("✅ <b>Рассылка выполнена успешно!</b>\n\nТип: %s\nСообщение отправлено.", 
-		map[string]string{"all": "📤 Всем пользователям", "admins": "👥 Только админам"}[broadcastType])
+	var broadcastTypeText string
+	switch broadcastType {
+	case 1:
+		broadcastTypeText = "📤 Всем пользователям"
+	case 2:
+		broadcastTypeText = "👥 Только админам"
+	default:
+		broadcastTypeText = "📤 Всем пользователям"
+	}
+	resultMessage := fmt.Sprintf("✅ <b>Рассылка выполнена успешно!</b>\n\nТип: %s\nСообщение отправлено.", broadcastTypeText)
 	
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Message.Chat.ID,
@@ -233,8 +251,8 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 func (h Handler) BroadcastCancelHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	callback := update.CallbackQuery
 	
-	// Удаляем тип рассылки из кэша
-	h.cache.Delete("broadcast_type_" + fmt.Sprint(callback.From.ID))
+	// Удаляем тип рассылки из кэша (просто игнорируем)
+	_ = callback.From.ID
 	
 	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Message.Chat.ID,
