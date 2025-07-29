@@ -31,7 +31,7 @@ type config struct {
 	isTelegramStarsEnabled                                    bool
 	adminTelegramId                                           int64
 	trialDays                                                 int
-	inboundUUIDs                                              map[uuid.UUID]uuid.UUID
+	squadUUIDs                                                map[uuid.UUID]uuid.UUID
 	referralDays                                              int
 	miniApp                                                   string
 	enableAutoPayment                                         bool
@@ -66,8 +66,8 @@ func GetMiniAppURL() string {
 	return conf.miniApp
 }
 
-func InboundUUIDs() map[uuid.UUID]uuid.UUID {
-	return conf.inboundUUIDs
+func SquadUUIDs() map[uuid.UUID]uuid.UUID {
+	return conf.squadUUIDs
 }
 
 func TrialTrafficLimit() int {
@@ -447,8 +447,8 @@ func InitConfig() {
 	conf.channelURL = os.Getenv("CHANNEL_URL")
 	conf.tosURL = os.Getenv("TOS_URL")
 
-	conf.inboundUUIDs = func() map[uuid.UUID]uuid.UUID {
-		v := os.Getenv("INBOUND_UUIDS")
+	conf.squadUUIDs = func() map[uuid.UUID]uuid.UUID {
+		v := os.Getenv("SQUAD_UUIDS")
 		if v != "" {
 			uuids := strings.Split(v, ",")
 			var inboundsMap = make(map[uuid.UUID]uuid.UUID)
@@ -459,10 +459,10 @@ func InitConfig() {
 				}
 				inboundsMap[uuid] = uuid
 			}
-			slog.Info("Loaded inbound UUIDs", "uuids", uuids)
+			slog.Info("Loaded squad UUIDs", "uuids", uuids)
 			return inboundsMap
 		} else {
-			slog.Info("No inbound UUIDs specified, all will be used")
+			slog.Info("No squad UUIDs specified, all will be used")
 			return map[uuid.UUID]uuid.UUID{}
 		}
 	}()

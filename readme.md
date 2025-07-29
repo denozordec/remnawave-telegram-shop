@@ -35,6 +35,13 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 - All telegram message support HTML formatting https://core.telegram.org/bots/api#html-style
 - Healthcheck - bot checking availability of db, panel.
 
+## Version Support
+
+| Remnawave | Bot   |
+|-------|-------|
+| 1.6   | 2.3.6 |
+| 2     | 3.0.0 |
+
 ## API
 
 Web server start on port defined in .env via HEALTH_CHECK_PORT
@@ -163,21 +170,25 @@ docker compose up -d
 
 ## Tribute payment setup instructions
 
-> [!WARNING] 
+> [!WARNING]
 > To integrate with Tribute, you must have a public domain (e.g., `bot.example.com`) that points to your bot server.  
-> Webhook and subscription setup will not work on a local address or IP — only via a domain with a valid SSL certificate.
+> Webhook and subscription setup will not work on a local address or IP — only via a domain with a valid SSL
+> certificate.
 
 ### How the integration works
 
-The bot supports subscription management via the Tribute service. When a user clicks the payment button, they are redirected to the Tribute bot or payment page to complete the subscription. After successful payment, Tribute sends a webhook to your server, and the bot activates the subscription for the user.
+The bot supports subscription management via the Tribute service. When a user clicks the payment button, they are
+redirected to the Tribute bot or payment page to complete the subscription. After successful payment, Tribute sends a
+webhook to your server, and the bot activates the subscription for the user.
 
 ### Step-by-step setup guide
 
 1. Getting started
-  * Create a channel;
-  * In the Tribute app, open "Channels and Groups" and add your channel;
-  * Create a new subscription;
-  * Obtain the subscription link (Subscription -> Links -> Telegram Link).
+
+* Create a channel;
+* In the Tribute app, open "Channels and Groups" and add your channel;
+* Create a new subscription;
+* Obtain the subscription link (Subscription -> Links -> Telegram Link).
 
 2. Configure environment variables in `.env`
     * Set the webhook path (e.g., `/tribute/webhook`):
@@ -222,7 +233,6 @@ Go to folder translations inside bot folder and change needed language.
 docker compose pull
 ```
 
-
 2. Restart the containers:
 
 ```bash
@@ -235,7 +245,7 @@ If you are not using ngrok from `docker-compose.yml`, you need to set up a rever
 
 <details>
 <summary>Traefik Configuration</summary>
-  
+
 ```yaml
 http:
   routers:
