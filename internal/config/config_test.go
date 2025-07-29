@@ -57,10 +57,17 @@ func TestIsWebAppLinkEnabledForPlatform(t *testing.T) {
 }
 
 func TestDetectPlatformFromUpdate(t *testing.T) {
+	// Сохраняем оригинальное значение
+	originalValue := conf.isWebAppLinkEnabled
+	defer func() {
+		conf.isWebAppLinkEnabled = originalValue
+	}()
+
 	tests := []struct {
-		name     string
-		update   *models.Update
-		expected string
+		name           string
+		update         *models.Update
+		globalEnabled  bool
+		expected       string
 	}{
 		{
 			name: "Message with WebAppData",
@@ -71,7 +78,8 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 					},
 				},
 			},
-			expected: "mobile",
+			globalEnabled: false,
+			expected:      "mobile",
 		},
 		{
 			name: "Callback with WebApp button",
@@ -95,19 +103,31 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 					},
 				},
 			},
-			expected: "mobile",
+			globalEnabled: false,
+			expected:      "mobile",
 		},
 		{
-			name: "Regular message without WebApp",
+			name: "Regular message without WebApp, global disabled",
 			update: &models.Update{
 				Message: &models.Message{
 					Text: "Hello",
 				},
 			},
-			expected: "desktop",
+			globalEnabled: false,
+			expected:      "desktop",
 		},
 		{
-			name: "Callback without WebApp",
+			name: "Regular message without WebApp, global enabled",
+			update: &models.Update{
+				Message: &models.Message{
+					Text: "Hello",
+				},
+			},
+			globalEnabled: true,
+			expected:      "mobile", // Когда глобальная настройка включена, предполагаем мобильное устройство
+		},
+		{
+			name: "Callback without WebApp, global disabled",
 			update: &models.Update{
 				CallbackQuery: &models.CallbackQuery{
 					Message: models.MaybeInaccessibleMessage{
@@ -126,20 +146,52 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 					},
 				},
 			},
-			expected: "desktop",
+			globalEnabled: false,
+			expected:      "desktop",
 		},
 		{
-			name:     "Nil update",
-			update:   nil,
-			expected: "desktop",
+			name: "Callback without WebApp, global enabled",
+			update: &models.Update{
+				CallbackQuery: &models.CallbackQuery{
+					Message: models.MaybeInaccessibleMessage{
+						Message: &models.Message{
+							ReplyMarkup: &models.InlineKeyboardMarkup{
+								InlineKeyboard: [][]models.InlineKeyboardButton{
+									{
+										{
+											Text:        "Test",
+											CallbackData: "test",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			globalEnabled: true,
+			expected:      "mobile", // Когда глобальная настройка включена, предполагаем мобильное устройство
+		},
+		{
+			name:          "Nil update, global disabled",
+			update:        nil,
+			globalEnabled: false,
+			expected:      "desktop",
+		},
+		{
+			name:          "Nil update, global enabled",
+			update:        nil,
+			globalEnabled: true,
+			expected:      "mobile", // Когда глобальная настройка включена, предполагаем мобильное устройство
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			conf.isWebAppLinkEnabled = tt.globalEnabled
 			result := DetectPlatformFromUpdate(tt.update)
 			if result != tt.expected {
-				t.Errorf("DetectPlatformFromUpdate() = %v, want %v", result, tt.expected)
+				t.Errorf("DetectPlatformFromUpdate() = %v, want %v (global enabled: %v)", result, tt.expected, tt.globalEnabled)
 			}
 		})
 	}

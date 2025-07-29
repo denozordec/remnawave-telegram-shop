@@ -256,6 +256,12 @@ func DetectPlatformFromUpdate(update *models.Update) string {
 		}
 	}
 	
+	// Если глобальная настройка включена, предполагаем мобильное устройство
+	// так как Web App в основном используется на мобильных устройствах
+	if conf.isWebAppLinkEnabled {
+		return "mobile"
+	}
+	
 	// Если нет явных признаков мобильного устройства, считаем десктопом
 	return "desktop"
 }
