@@ -117,6 +117,19 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 			expected:      "desktop",
 		},
 		{
+			name: "Message via bot (Web App), global disabled",
+			update: &models.Update{
+				Message: &models.Message{
+					Text: "Hello",
+					ViaBot: &models.User{
+						ID: 123456789,
+					},
+				},
+			},
+			globalEnabled: false,
+			expected:      "mobile", // Даже при отключенной настройке, Web App остается мобильным
+		},
+		{
 			name: "Regular message without WebApp, global enabled",
 			update: &models.Update{
 				Message: &models.Message{
@@ -125,6 +138,19 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 			},
 			globalEnabled: true,
 			expected:      "mobile", // Когда глобальная настройка включена, предполагаем мобильное устройство
+		},
+		{
+			name: "Message via bot (Web App), global enabled",
+			update: &models.Update{
+				Message: &models.Message{
+					Text: "Hello",
+					ViaBot: &models.User{
+						ID: 123456789,
+					},
+				},
+			},
+			globalEnabled: true,
+			expected:      "mobile", // Сообщение через бота указывает на Web App
 		},
 		{
 			name: "Callback without WebApp, global disabled",

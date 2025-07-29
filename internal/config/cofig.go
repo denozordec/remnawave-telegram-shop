@@ -256,13 +256,56 @@ func DetectPlatformFromUpdate(update *models.Update) string {
 		}
 	}
 	
-	// Если глобальная настройка включена, предполагаем мобильное устройство
-	// так как Web App в основном используется на мобильных устройствах
-	if conf.isWebAppLinkEnabled {
-		return "mobile"
+	// Если глобальная настройка отключена, считаем десктопом
+	if !conf.isWebAppLinkEnabled {
+		return "desktop"
 	}
 	
-	// Если нет явных признаков мобильного устройства, считаем десктопом
+	// Если глобальная настройка включена, пытаемся определить платформу
+	// по доступной информации
+	
+	// Проверяем, есть ли информация о платформе в сообщении
+	if update.Message != nil {
+		// Если пользователь отправил сообщение через Web App, он точно на мобильном
+		if update.Message.ViaBot != nil {
+			return "mobile"
+		}
+		
+		// Проверяем тип сообщения - некоторые типы более характерны для мобильных устройств
+		if update.Message.Contact != nil || update.Message.Location != nil {
+			// Контакты и геолокация чаще используются на мобильных устройствах
+			return "mobile"
+		}
+		
+		// Проверяем, есть ли признаки мобильного клиента
+		if update.Message.From != nil {
+			// Если пользователь использует мобильное приложение, 
+			// обычно это видно по типу сообщения или другим признакам
+			// К сожалению, Telegram API не предоставляет прямую информацию о платформе
+		}
+	}
+	
+	// По умолчанию, если глобальная настройка включена, 
+	// предполагаем что пользователь на мобильном устройстве
+	// так как Web App в основном используется на мобильных устройствах
+	return "mobile"
+}
+
+// DetectPlatformFromUserAgent пытается определить платформу по User Agent
+// К сожалению, Telegram Bot API не предоставляет User Agent
+func DetectPlatformFromUserAgent(userAgent string) string {
+	if userAgent == "" {
+		return "unknown"
+	}
+	
+	// Простая эвристика для определения мобильных устройств
+	mobileKeywords := []string{"Mobile", "Android", "iPhone", "iPad", "Windows Phone"}
+	for _, keyword := range mobileKeywords {
+		if strings.Contains(userAgent, keyword) {
+			return "mobile"
+		}
+	}
+	
 	return "desktop"
 }
 
