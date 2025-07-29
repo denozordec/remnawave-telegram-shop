@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/go-telegram/bot/models"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"log"
@@ -211,6 +212,49 @@ func GetHealthCheckPort() int {
 
 func IsWepAppLinkEnabled() bool {
 	return conf.isWebAppLinkEnabled
+}
+
+// IsWebAppLinkEnabledForPlatform определяет, нужно ли показывать Web App ссылку для конкретной платформы
+func IsWebAppLinkEnabledForPlatform(platform string) bool {
+	// Если глобальная настройка отключена, то Web App не показываем нигде
+	if !conf.isWebAppLinkEnabled {
+		return false
+	}
+	
+	// Определяем платформу и возвращаем соответствующее значение
+	switch platform {
+	case "mobile":
+		return true
+	case "desktop":
+		return false
+	default:
+		// По умолчанию используем глобальную настройку
+		return conf.isWebAppLinkEnabled
+	}
+}
+
+// DetectPlatformFromUpdate определяет платформу пользователя из Update
+func DetectPlatformFromUpdate(update *models.Update) string {
+	// Проверяем, есть ли WebAppInfo в сообщении или callback query
+	if update.Message != nil && update.Message.WebAppData != nil {
+		return "mobile"
+	}
+	
+	if update.CallbackQuery != nil && update.CallbackQuery.Message != nil {
+		// Проверяем, есть ли WebAppInfo в кнопках сообщения
+		if update.CallbackQuery.Message.ReplyMarkup != nil {
+			for _, row := range update.CallbackQuery.Message.ReplyMarkup.InlineKeyboard {
+				for _, button := range row {
+					if button.WebApp != nil {
+						return "mobile"
+					}
+				}
+			}
+		}
+	}
+	
+	// Если нет явных признаков мобильного устройства, считаем десктопом
+	return "desktop"
 }
 
 func GetXApiKey() string {

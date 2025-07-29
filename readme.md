@@ -55,7 +55,7 @@ The application requires the following environment variables to be set:
 | `DAYS_IN_MONTH`          | Days in month                                                                                                                                |
 | `REMNAWAVE_TAG`          | Tag in remnawave                                                                                                                             |
 | `HEALTH_CHECK_PORT`      | Server port                                                                                                                                  |
-| `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                             |
+| `IS_WEB_APP_LINK`        | If true, then subscription links will be shown as Web App buttons for mobile devices and as regular links for desktop. The bot automatically detects the user's platform. |
 | `X_API_KEY`              | https://remna.st/docs/security/tinyauth-for-nginx#issuing-api-keys                                                                           |
 | `MINI_APP_URL`           | tg WEB APP URL. if empty not be used.                                                                                                        |
 | `PRICE_12`               | Price for 12 month                                                                                                                           |
@@ -101,6 +101,16 @@ The bot dynamically creates buttons based on available environment variables:
 - Main buttons for purchasing and connecting to the VPN are always shown
 - Additional buttons for Server Status, Support, Feedback, and Channel are only displayed if their corresponding URL
   environment variables are set
+
+### Platform-Dependent Behavior
+
+The bot automatically detects the user's platform and adjusts the interface accordingly:
+
+- **Mobile Devices**: When `IS_WEB_APP_LINK` is enabled, subscription links are displayed as Web App buttons that open directly in Telegram
+- **Desktop Clients**: Subscription links are shown as regular text links that can be copied and used in external applications
+- **Platform Detection**: The bot detects mobile usage by analyzing Web App interactions and message structure
+
+This ensures optimal user experience across different platforms while maintaining compatibility with all Telegram clients.
 
 ## Automated Notifications
 

@@ -32,7 +32,7 @@ func (h Handler) ConnectCommandHandler(ctx context.Context, b *bot.Bot, update *
 	isDisabled := true
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
-		Text:      buildConnectText(customer, langCode),
+		Text:      buildConnectText(customer, langCode, update),
 		ParseMode: models.ParseModeHTML,
 		LinkPreviewOptions: &models.LinkPreviewOptions{
 			IsDisabled: &isDisabled,
@@ -65,7 +65,8 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 	langCode := update.CallbackQuery.From.LanguageCode
 
 	var markup [][]models.InlineKeyboardButton
-	if config.IsWepAppLinkEnabled() {
+	platform := config.DetectPlatformFromUpdate(update)
+	if config.IsWebAppLinkEnabledForPlatform(platform) {
 		if customer.SubscriptionLink != nil && customer.ExpireAt.After(time.Now()) {
 			markup = append(markup, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "connect_button"),
 				WebApp: &models.WebAppInfo{
@@ -80,7 +81,7 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
 		ParseMode: models.ParseModeHTML,
-		Text:      buildConnectText(customer, langCode),
+		Text:      buildConnectText(customer, langCode, update),
 		LinkPreviewOptions: &models.LinkPreviewOptions{
 			IsDisabled: &isDisabled,
 		},
@@ -94,7 +95,7 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 	}
 }
 
-func buildConnectText(customer *database.Customer, langCode string) string {
+func buildConnectText(customer *database.Customer, langCode string, update *models.Update) string {
 	var info strings.Builder
 
 	tm := translation.GetInstance()
@@ -109,7 +110,9 @@ func buildConnectText(customer *database.Customer, langCode string) string {
 			info.WriteString(fmt.Sprintf(subscriptionActiveText, formattedDate))
 
 			if customer.SubscriptionLink != nil && *customer.SubscriptionLink != "" {
-				if config.IsWepAppLinkEnabled() {
+				platform := config.DetectPlatformFromUpdate(update)
+				if config.IsWebAppLinkEnabledForPlatform(platform) {
+					// Для мобильных устройств не показываем ссылку в тексте
 				} else {
 					subscriptionLinkText := tm.GetText(langCode, "subscription_link")
 					info.WriteString(fmt.Sprintf(subscriptionLinkText, *customer.SubscriptionLink))
