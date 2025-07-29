@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"remnawave-tg-shop-bot/internal/config"
 	"remnawave-tg-shop-bot/internal/database"
-	"remnawave-tg-shop-bot/internal/translation"
 	"remnawave-tg-shop-bot/utils"
 	"strings"
 )
@@ -108,7 +107,7 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 		return
 	}
 	
-	// Удаляем тип рассылки из кэша (просто не используем результат)
+	// Удаляем тип рассылки из кэша (просто игнорируем)
 	_ = broadcastType
 	
 	// Создаем клавиатуру подтверждения
@@ -197,9 +196,9 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	var err error
 	switch broadcastType {
 	case 1:
-		err = h.sendBroadcastToAll(ctx, b, messageText, models.ParseModeHTML)
+		err = h.sendBroadcastToAll(ctx, b, messageText, string(models.ParseModeHTML))
 	case 2:
-		err = h.sendBroadcastToAdmins(ctx, b, messageText, models.ParseModeHTML)
+		err = h.sendBroadcastToAdmins(ctx, b, messageText, string(models.ParseModeHTML))
 	}
 	
 	if err != nil {
@@ -227,8 +226,8 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	resultMessage := fmt.Sprintf("✅ <b>Рассылка выполнена успешно!</b>\n\nТип: %s\nСообщение отправлено.", broadcastTypeText)
 	
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
-		ChatID:    callback.Message.Chat.ID,
-		MessageID: callback.Message.ID,
+		ChatID:    callback.Message.Message.Chat.ID,
+		MessageID: callback.Message.Message.ID,
 		Text:      resultMessage,
 		ParseMode: models.ParseModeHTML,
 	})
@@ -255,8 +254,8 @@ func (h Handler) BroadcastCancelHandler(ctx context.Context, b *bot.Bot, update 
 	_ = callback.From.ID
 	
 	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
-		ChatID:    callback.Message.Chat.ID,
-		MessageID: callback.Message.ID,
+		ChatID:    callback.Message.Message.Chat.ID,
+		MessageID: callback.Message.Message.ID,
 		Text:      "❌ <b>Рассылка отменена</b>",
 		ParseMode: models.ParseModeHTML,
 	})
@@ -336,7 +335,7 @@ func (h Handler) sendMessageToCustomer(ctx context.Context, b *bot.Bot, customer
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    customer.TelegramID,
 		Text:      message,
-		ParseMode: parseMode,
+		ParseMode: models.ParseMode(parseMode),
 	})
 
 	return err
