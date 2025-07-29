@@ -11,14 +11,6 @@ import (
 	"strings"
 )
 
-const (
-	CallbackBroadcastMenu     = "broadcast_menu"
-	CallbackBroadcastToAll    = "broadcast_to_all"
-	CallbackBroadcastToAdmins = "broadcast_to_admins"
-	CallbackBroadcastConfirm  = "broadcast_confirm"
-	CallbackBroadcastCancel   = "broadcast_cancel"
-)
-
 // BroadcastMenuHandler показывает меню рассылки для админов
 func (h Handler) BroadcastMenuHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	message := "📢 <b>Меню рассылки</b>\n\nВыберите тип рассылки:"
