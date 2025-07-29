@@ -14,10 +14,12 @@ import (
 
 // BroadcastMenuHandler показывает меню рассылки для админов
 func (h Handler) BroadcastMenuHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	callback := update.CallbackQuery
 	message := "📢 <b>Меню рассылки</b>\n\nВыберите тип рассылки:"
 	
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
+	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    callback.Message.Message.Chat.ID,
+		MessageID: callback.Message.Message.ID,
 		Text:      message,
 		ParseMode: models.ParseModeHTML,
 		ReplyMarkup: models.InlineKeyboardMarkup{
@@ -34,6 +36,14 @@ func (h Handler) BroadcastMenuHandler(ctx context.Context, b *bot.Bot, update *m
 	
 	if err != nil {
 		slog.Error("Error sending broadcast menu", err)
+	}
+	
+	// Отвечаем на callback query
+	_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
+		CallbackQueryID: callback.ID,
+	})
+	if err != nil {
+		slog.Error("Error answering callback query", err)
 	}
 }
 
