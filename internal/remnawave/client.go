@@ -6,8 +6,10 @@ import (
 	"fmt"
 	remapi "github.com/Jolymmiles/remnawave-api-go/api"
 	"github.com/google/uuid"
+	"log/slog"
 	"net/http"
 	"remnawave-tg-shop-bot/internal/config"
+	"remnawave-tg-shop-bot/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -18,27 +20,52 @@ type Client struct {
 }
 
 type headerTransport struct {
-	base http.RoundTripper
+	base    http.RoundTripper
+	xApiKey string
+	local   bool
 }
 
 func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("x-forwarded-for", "127.0.0.1")
-	req.Header.Set("x-forwarded-proto", "https")
-	return t.base.RoundTrip(req)
+	r := req.Clone(req.Context())
+
+	if t.xApiKey != "" {
+		r.Header.Set("X-Api-Key", t.xApiKey)
+	}
+
+	if t.local {
+		r.Header.Set("x-forwarded-for", "127.0.0.1")
+		r.Header.Set("x-forwarded-proto", "https")
+	}
+
+	return t.base.RoundTrip(r)
 }
 
 func NewClient(baseURL, token, mode string) *Client {
-	client := &http.Client{}
-	if mode == "local" {
-		client.Transport = &headerTransport{
-			base: http.DefaultTransport,
-		}
+	xApiKey := config.GetXApiKey()
+	local := mode == "local"
+
+	client := &http.Client{
+		Transport: &headerTransport{
+			base:    http.DefaultTransport,
+			xApiKey: xApiKey,
+			local:   local,
+		},
 	}
-	remnawaveApi, err := remapi.NewClient(baseURL, remapi.StaticToken{Token: token}, remapi.WithClient(client))
+
+	api, err := remapi.NewClient(baseURL, remapi.StaticToken{Token: token}, remapi.WithClient(client))
 	if err != nil {
 		panic(err)
 	}
-	return &Client{client: remnawaveApi}
+	return &Client{client: api}
+}
+
+func (r *Client) Ping(ctx context.Context) error {
+	params := remapi.UsersControllerGetAllUsersParams{
+		Size:  remapi.NewOptFloat64(1),
+		Start: remapi.NewOptFloat64(0),
+	}
+	_, err := r.client.UsersControllerGetAllUsers(ctx, params)
+	return err
 }
 
 func (r *Client) GetUsers(ctx context.Context) (*[]remapi.UserDto, error) {
@@ -106,14 +133,24 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UserDto, t
 		TrafficLimitBytes: remapi.NewOptInt(trafficLimit),
 	}
 
+	if config.RemnawaveTag() != "" && (existingUser.Tag.IsNull() || !existingUser.Tag.IsSet()) {
+		userUpdate.Tag = remapi.NewOptNilString(config.RemnawaveTag())
+	}
+
+	var username string
 	if ctx.Value("username") != nil {
-		userUpdate.Description = remapi.NewOptNilString(ctx.Value("username").(string))
+		username = ctx.Value("username").(string)
+		userUpdate.Description = remapi.NewOptNilString(username)
+	} else {
+		username = ""
 	}
 
 	updateUser, err := r.client.UsersControllerUpdateUser(ctx, userUpdate)
 	if err != nil {
 		return nil, err
 	}
+	tgid, _ := existingUser.TelegramId.Get()
+	slog.Info("updated user", "telegramId", utils.MaskHalf(strconv.Itoa(tgid)), "username", utils.MaskHalf(username), "days", days)
 	return &updateUser.Response, nil
 }
 
@@ -149,15 +186,23 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		TrafficLimitStrategy: remapi.CreateUserRequestDtoTrafficLimitStrategyMONTH,
 		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
 	}
+	if config.RemnawaveTag() != "" {
+		createUserRequestDto.Tag = remapi.NewOptNilString(config.RemnawaveTag())
+	}
 
+	var tgUsername string
 	if ctx.Value("username") != nil {
+		tgUsername = ctx.Value("username").(string)
 		createUserRequestDto.Description = remapi.NewOptString(ctx.Value("username").(string))
+	} else {
+		tgUsername = ""
 	}
 
 	userCreate, err := r.client.UsersControllerCreateUser(ctx, &createUserRequestDto)
 	if err != nil {
 		return nil, err
 	}
+	slog.Info("created user", "telegramId", utils.MaskHalf(strconv.FormatInt(telegramId, 10)), "username", utils.MaskHalf(tgUsername), "days", days)
 	return &userCreate.Response, nil
 }
 
@@ -167,6 +212,10 @@ func generateUsername(customerId int64, telegramId int64) string {
 
 func getNewExpire(daysToAdd int, currentExpire time.Time) time.Time {
 	if currentExpire.IsZero() {
+		return time.Now().UTC().AddDate(0, 0, daysToAdd)
+	}
+
+	if currentExpire.Before(time.Now().UTC()) {
 		return time.Now().UTC().AddDate(0, 0, daysToAdd)
 	}
 

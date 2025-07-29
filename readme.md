@@ -1,7 +1,9 @@
 # Remnawave Telegram Shop
+
 [![Stars](https://img.shields.io/github/stars/Jolymmiels/remnawave-telegram-shop.svg?style=social)](https://github.com/Jolymmiels/remnawave-telegram-shop/stargazers)
 [![Forks](https://img.shields.io/github/forks/Jolymmiels/remnawave-telegram-shop.svg?style=social)](https://github.com/Jolymmiels/remnawave-telegram-shop/network/members)
 [![Issues](https://img.shields.io/github/issues/Jolymmiels/remnawave-telegram-shop.svg)](https://github.com/Jolymmiels/remnawave-telegram-shop/issues)
+
 ## Description
 
 A Telegram bot for selling subscriptions with integration to Remnawave (https://remna.st/). This service allows users to
@@ -14,16 +16,32 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 - `/sync` - Poll users from remnawave and synchronize them with the database. Remove all users which not present in
   remnawave.
 
+### Payment Systems
+
+- [YooKassa API](https://yookassa.ru/developers/api)
+- [CryptoPay API](https://help.crypt.bot/crypto-pay-api)
+- Telegram Stars
+- Tribute
+
 ## Features
 
 - Purchase VPN subscriptions with different payment methods (bank cards, cryptocurrency)
-- Multiple subscription plans (1, 3, and 6 months)
+- Multiple subscription plans (1, 3, 6, 12 months)
 - Automated subscription management
 - **Subscription Notifications**: The bot automatically sends notifications to users 3 days before their subscription
   expires, helping them avoid service interruption
 - Multi-language support (Russian and English)
 - **Selective Inbound Assignment**: Configure specific inbounds to assign to users via UUID filtering
 - All telegram message support HTML formatting https://core.telegram.org/bots/api#html-style
+- Healthcheck - bot checking availability of db, panel.
+
+## API
+
+Web server start on port defined in .env via HEALTH_CHECK_PORT
+
+- /healthcheck
+- /${TRIBUTE_PAYMENT_URL} - webhook for tribute
+
 ## Environment Variables
 
 The application requires the following environment variables to be set:
@@ -33,8 +51,18 @@ The application requires the following environment variables to be set:
 | `PRICE_1`                | Price for 1 month                                                                                                                            |
 | `PRICE_3`                | Price for 3 month                                                                                                                            |
 | `PRICE_6`                | Price for 6 month                                                                                                                            |
+| `PRICE_12`               | Price for 12 month                                                                                                                           |
+| `DAYS_IN_MONTH`          | Days in month                                                                                                                                |
+| `REMNAWAVE_TAG`          | Tag in remnawave                                                                                                                             |
+| `HEALTH_CHECK_PORT`      | Server port                                                                                                                                  |
+| `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                             |
+| `X_API_KEY`              | https://remna.st/docs/security/tinyauth-for-nginx#issuing-api-keys                                                                           |
 | `MINI_APP_URL`           | tg WEB APP URL. if empty not be used.                                                                                                        |
 | `PRICE_12`               | Price for 12 month                                                                                                                           |
+| `STARS_PRICE_1`          | Price in Stars for 1 month                                                                                                                   
+| `STARS_PRICE_3`          | Price in Stars for 3 month                                                                                                                   
+| `STARS_PRICE_6`          | Price in Stars for 6 month                                                                                                                   
+| `STARS_PRICE_12`         | Price in Stars for 12 month                                                                                                                  
 | `REFERRAL_DAYS`          | Refferal days. if 0, then disabled.                                                                                                          |
 | `TELEGRAM_TOKEN`         | Telegram Bot API token for bot functionality                                                                                                 |
 | `DATABASE_URL`           | PostgreSQL connection string                                                                                                                 |
@@ -62,6 +90,9 @@ The application requires the following environment variables to be set:
 | `TRIAL_TRAFFIC_LIMIT`    | Maximum allowed traffic in gb for trial subscriptions                                                                                        |     
 | `TRIAL_DAYS`             | Number of days for trial subscriptions. if 0 = disabled.                                                                                     |
 | `INBOUND_UUIDS`          | Comma-separated list of inbound UUIDs to assign to users (e.g., "773db654-a8b2-413a-a50b-75c3536238fd,bc979bdd-f1fa-4d94-8a51-38a0f518a2a2") |
+| `TRIBUTE_WEBHOOK_URL`    | Path for webhook handler. Example: /example (https://www.uuidgenerator.net/version4)                                                         |
+| `TRIBUTE_API_KEY`        | Api key, which can be obtained via settings in Tribute app.                                                                                  |
+| `TRIBUTE_PAYMENT_URL`    | You payment url for Tribute. (Subscription telegram link)                                                                                    |
 
 ## User Interface
 
@@ -100,12 +131,6 @@ The bot supports selective inbound assignment to users:
 - [PostgreSQL](https://www.postgresql.org/)
 - [pgx - PostgreSQL Driver](https://github.com/jackc/pgx)
 
-### Payment Systems
-
-- [YooKassa API](https://yookassa.ru/developers/api)
-- [CryptoPay API](https://help.crypt.bot/crypto-pay-api)
-- Telegram Stars
-
 ## Setup Instructions
 
 1. Clone the repository
@@ -122,9 +147,58 @@ mv .env.sample .env
 
 3. Run the bot:
 
-   ```bash
-   docker compose up -d
-   ```
+```bash
+docker compose up -d
+```
+
+## Tribute payment setup instructions
+
+> [!WARNING] 
+> To integrate with Tribute, you must have a public domain (e.g., `bot.example.com`) that points to your bot server.  
+> Webhook and subscription setup will not work on a local address or IP — only via a domain with a valid SSL certificate.
+
+### How the integration works
+
+The bot supports subscription management via the Tribute service. When a user clicks the payment button, they are redirected to the Tribute bot or payment page to complete the subscription. After successful payment, Tribute sends a webhook to your server, and the bot activates the subscription for the user.
+
+### Step-by-step setup guide
+
+1. Getting started
+  * Create a channel;
+  * In the Tribute app, open "Channels and Groups" and add your channel;
+  * Create a new subscription;
+  * Obtain the subscription link (Subscription -> Links -> Telegram Link).
+
+2. Configure environment variables in `.env`
+    * Set the webhook path (e.g., `/tribute/webhook`):
+
+    ```
+    TRIBUTE_WEBHOOK_URL=/tribute/webhook
+    ```
+
+    * Set the API key from your Tribute settings:
+
+    ```
+    TRIBUTE_API_KEY=your_tribute_api_key
+    ```
+
+    * Paste the subscription link you got from Tribute:
+
+    ```
+    TRIBUTE_PAYMENT_URL=https://t.me/tribute/app?startapp=...
+    ```
+
+    * Specify the port the app will use:
+
+    ```
+    HEALTH_CHECK_PORT=82251
+    ```
+
+3. Restart bot
+
+```bash
+docker compose down && docker compose up -d
+```
 
 ## How to change bot messages
 
@@ -134,15 +208,56 @@ Go to folder translations inside bot folder and change needed language.
 
 1. Pull the latest Docker image:
 
-   ```bash
-   docker compose pull
-   ```
+```bash
+docker compose pull
+```
 
 
 2. Restart the containers:
-   ```bash
-   docker compose down && docker compose up -d
-   ```
+
+```bash
+docker compose down && docker compose up -d
+```
+
+## Reverse Proxy Configuration
+
+If you are not using ngrok from `docker-compose.yml`, you need to set up a reverse proxy to forward requests to the bot.
+
+<details>
+<summary>Traefik Configuration</summary>
+  
+```yaml
+http:
+  routers:
+    remnawave-telegram-shop:
+      rule: "Host(`bot.example.com`)"
+      entrypoints:
+        - http
+      middlewares:
+        - redirect-to-https
+      service: remnawave-telegram-shop
+
+    remnawave-telegram-shop-secure:
+      rule: "Host(`bot.example.com`)"
+      entrypoints:
+        - https
+      tls:
+        certResolver: letsencrypt
+      service: remnawave-telegram-shop
+
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+
+  services:
+    remnawave-telegram-shop:
+      loadBalancer:
+        servers:
+          - url: "http://bot:82251"
+```
+
+</details>
 
 ## Donations
 
@@ -158,4 +273,3 @@ consider donating. Your support helps drive future updates and improvements.
 - **TRC20 USDT:** `TBJrguLia8tvydsQ2CotUDTYtCiLDA4nPW`
 
 - **TON USDT:** `UQAdAhVxOr9LS07DDQh0vNzX2575Eu0eOByjImY1yheatXgr`
-
