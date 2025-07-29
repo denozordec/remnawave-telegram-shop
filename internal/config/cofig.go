@@ -240,7 +240,7 @@ func DetectPlatformFromUpdate(update *models.Update) string {
 		return "mobile"
 	}
 	
-	if update.CallbackQuery != nil && update.CallbackQuery.Message != nil {
+	if update.CallbackQuery != nil {
 		// Проверяем, есть ли WebAppInfo в кнопках сообщения
 		// MaybeInaccessibleMessage содержит поле Message
 		if update.CallbackQuery.Message.Message != nil {

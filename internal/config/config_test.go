@@ -77,14 +77,16 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 			name: "Callback with WebApp button",
 			update: &models.Update{
 				CallbackQuery: &models.CallbackQuery{
-					Message: &models.Message{
-						ReplyMarkup: &models.InlineKeyboardMarkup{
-							InlineKeyboard: [][]models.InlineKeyboardButton{
-								{
+					Message: models.MaybeInaccessibleMessage{
+						Message: &models.Message{
+							ReplyMarkup: &models.InlineKeyboardMarkup{
+								InlineKeyboard: [][]models.InlineKeyboardButton{
 									{
-										Text: "Test",
-										WebApp: &models.WebAppInfo{
-											URL: "https://example.com",
+										{
+											Text: "Test",
+											WebApp: &models.WebAppInfo{
+												URL: "https://example.com",
+											},
 										},
 									},
 								},
@@ -108,13 +110,15 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 			name: "Callback without WebApp",
 			update: &models.Update{
 				CallbackQuery: &models.CallbackQuery{
-					Message: &models.Message{
-						ReplyMarkup: &models.InlineKeyboardMarkup{
-							InlineKeyboard: [][]models.InlineKeyboardButton{
-								{
+					Message: models.MaybeInaccessibleMessage{
+						Message: &models.Message{
+							ReplyMarkup: &models.InlineKeyboardMarkup{
+								InlineKeyboard: [][]models.InlineKeyboardButton{
 									{
-										Text:        "Test",
-										CallbackData: "test",
+										{
+											Text:        "Test",
+											CallbackData: "test",
+										},
 									},
 								},
 							},
