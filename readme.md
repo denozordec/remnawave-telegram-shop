@@ -15,6 +15,7 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 
 - `/sync` - Poll users from remnawave and synchronize them with the database. Remove all users which not present in
   remnawave.
+- **Broadcast System** - Admins can send broadcast messages to all users or only to other admins through the bot interface. The broadcast button appears in the main menu only for admin users.
 
 ### Payment Systems
 

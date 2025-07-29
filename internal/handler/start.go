@@ -185,5 +185,11 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 	if config.TosURL() != "" {
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "tos_button"), URL: config.TosURL()}})
 	}
+
+	// Добавляем кнопку рассылки только для админов
+	if existingCustomer.TelegramID == config.GetAdminTelegramId() {
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "broadcast_button"), CallbackData: CallbackBroadcastMenu}})
+	}
+	
 	return inlineKeyboard
 }
