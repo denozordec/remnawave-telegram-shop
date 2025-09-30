@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"time"
 )
 
 type InvoiceType string
@@ -210,7 +211,19 @@ func (pr *PurchaseRepository) MarkAsPaid(ctx context.Context, purchaseID int64) 
 	return pr.UpdateFields(ctx, purchaseID, updates)
 }
 
-func (pr *PurchaseRepository) FindTributesByCustomerIDs(
+func buildLatestActiveTributesQuery(customerIDs []int64) sq.SelectBuilder {
+	return sq.
+		Select("*").
+		From("purchase").
+		Where(sq.And{
+			sq.Eq{"invoice_type": InvoiceTypeTribute},
+			sq.Eq{"customer_id": customerIDs},
+			sq.Expr("created_at = (SELECT MAX(created_at) FROM purchase p2 WHERE p2.customer_id = purchase.customer_id AND p2.invoice_type = ?)", InvoiceTypeTribute),
+		}).
+		Where(sq.NotEq{"status": PurchaseStatusCancel})
+}
+
+func (pr *PurchaseRepository) FindLatestActiveTributesByCustomerIDs(
 	ctx context.Context,
 	customerIDs []int64,
 ) (*[]Purchase, error) {
@@ -219,15 +232,7 @@ func (pr *PurchaseRepository) FindTributesByCustomerIDs(
 		return &empty, nil
 	}
 
-	builder := sq.
-		Select("*").
-		From("purchase").
-		Where(sq.And{
-			sq.Eq{"invoice_type": InvoiceTypeTribute},
-			sq.NotEq{"status": PurchaseStatusCancel},
-			sq.Eq{"customer_id": customerIDs}, // slice → IN (...)
-		}).
-		PlaceholderFormat(sq.Dollar)
+	builder := buildLatestActiveTributesQuery(customerIDs).PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := builder.ToSql()
 	if err != nil {
