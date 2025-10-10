@@ -40,7 +40,7 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 | Remnawave | Bot   |
 |-----------|-------|
 | 1.6       | 2.3.6 |
-| 2         | 3.0.0 |
+| 2.*.*         | 3.*.* |
 
 ## API
 
