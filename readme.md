@@ -60,6 +60,7 @@ The application requires the following environment variables to be set:
 | `PRICE_6`                | Price for 6 month                                                                                                                          |
 | `PRICE_12`               | Price for 12 month                                                                                                                         |
 | `DAYS_IN_MONTH`          | Days in month                                                                                                                              |
+| `DEFAULT_LANGUAGE`       | Default language for bot messages (en or ru). Default: ru                                                                                   |
 | `REMNAWAVE_TAG`          | Tag in remnawave                                                                                                                           |
 | `HEALTH_CHECK_PORT`      | Server port                                                                                                                                |
 | `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                           |

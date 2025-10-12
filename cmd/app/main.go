@@ -36,7 +36,7 @@ func main() {
 	config.InitConfig()
 
 	tm := translation.GetInstance()
-	err := tm.InitTranslations("./translations")
+	err := tm.InitTranslations("./translations", config.DefaultLanguage())
 	if err != nil {
 		panic(err)
 	}
