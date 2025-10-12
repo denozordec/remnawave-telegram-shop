@@ -14,7 +14,7 @@ RUN apk update && apk add --no-cache ca-certificates tzdata
 RUN update-ca-certificates
 
 ARG TARGETOS
-ARG TARGETOS
+ARG TARGETARCH
 ARG VERSION
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
