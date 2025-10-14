@@ -40,13 +40,23 @@ func TestSanitizeUsername(t *testing.T) {
 			input:    stringPtr("@john_doe"),
 			expected: stringPtr("john_doe"),
 		},
+		{
+			name:     "valid username with numbers",
+			input:    stringPtr("ioajfd123"),
+			expected: stringPtr("ioajfd123"),
+		},
+		{
+			name:     "valid username with @ and numbers",
+			input:    stringPtr("@ioajfd123"),
+			expected: stringPtr("ioajfd123"),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := SanitizeUsername(tt.input)
 			if !equalStringPtr(result, tt.expected) {
-				t.Errorf("SanitizeUsername(%v) = %v, want %v", 
+				t.Errorf("SanitizeUsername(%v) = %v, want %v",
 					ptrToString(tt.input), ptrToString(result), ptrToString(tt.expected))
 			}
 		})
@@ -63,6 +73,11 @@ func TestSanitizeDisplayName(t *testing.T) {
 			name:     "valid display name",
 			input:    stringPtr("John"),
 			expected: stringPtr("John"),
+		},
+		{
+			name:     "valid Russian name Alexey",
+			input:    stringPtr("Алексей"),
+			expected: stringPtr("Алексей"),
 		},
 		{
 			name:     "display name with URL",
@@ -115,6 +130,27 @@ func TestIsSuspiciousUser(t *testing.T) {
 			username:  stringPtr("john_doe"),
 			firstName: stringPtr("John"),
 			lastName:  stringPtr("Doe"),
+			expected:  false,
+		},
+		{
+			name:      "normal Russian user Alexey",
+			username:  stringPtr("alexey123"),
+			firstName: stringPtr("Алексей"),
+			lastName:  stringPtr("Иванов"),
+			expected:  false,
+		},
+		{
+			name:      "Russian user Alexey with nil lastname",
+			username:  stringPtr("user123"),
+			firstName: stringPtr("Алексей"),
+			lastName:  nil,
+			expected:  false,
+		},
+		{
+			name:      "Russian user Alexey with empty string lastname",
+			username:  stringPtr("user456"),
+			firstName: stringPtr("Алексей"),
+			lastName:  stringPtr(""),
 			expected:  false,
 		},
 		{

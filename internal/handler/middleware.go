@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 
+	"log/slog"
+
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"log/slog"
 
 	"remnawave-tg-shop-bot/internal/database"
 	"remnawave-tg-shop-bot/utils"

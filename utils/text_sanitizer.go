@@ -233,13 +233,13 @@ func DisplayNameOrFallback(firstName *string, fallback string) string {
 
 // IsSuspiciousUser checks if user has suspicious username or display name
 func IsSuspiciousUser(username *string, firstName *string, lastName *string) bool {
-	if username != nil && SanitizeUsername(username) == nil {
+	if username != nil && *username != "" && SanitizeUsername(username) == nil {
 		return true
 	}
-	if firstName != nil && SanitizeDisplayName(firstName) == nil {
+	if firstName != nil && *firstName != "" && SanitizeDisplayName(firstName) == nil {
 		return true
 	}
-	if lastName != nil && SanitizeDisplayName(lastName) == nil {
+	if lastName != nil && *lastName != "" && SanitizeDisplayName(lastName) == nil {
 		return true
 	}
 	return false
