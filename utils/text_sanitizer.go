@@ -68,10 +68,6 @@ var (
 		"teieqram":     true,
 		"telegrarn":    true,
 		"joinchat":     true,
-		"http":         true,
-		"https":        true,
-		"www":          true,
-		"tg":           true,
 		"service":      true,
 		"notification": true,
 		"system":       true,
@@ -232,15 +228,33 @@ func DisplayNameOrFallback(firstName *string, fallback string) string {
 }
 
 // IsSuspiciousUser checks if user has suspicious username or display name
+// containsAlphanumeric checks if string contains any letter or digit
+func containsAlphanumeric(s string) bool {
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || 
+		   (r >= '0' && r <= '9') || (r >= 'а' && r <= 'я') || 
+		   (r >= 'А' && r <= 'Я') {
+			return true
+		}
+	}
+	return false
+}
+
 func IsSuspiciousUser(username *string, firstName *string, lastName *string) bool {
-	if username != nil && *username != "" && SanitizeUsername(username) == nil {
-		return true
+	if username != nil && *username != "" {
+		if containsAlphanumeric(*username) && SanitizeUsername(username) == nil {
+			return true
+		}
 	}
-	if firstName != nil && *firstName != "" && SanitizeDisplayName(firstName) == nil {
-		return true
+	if firstName != nil && *firstName != "" {
+		if containsAlphanumeric(*firstName) && SanitizeDisplayName(firstName) == nil {
+			return true
+		}
 	}
-	if lastName != nil && *lastName != "" && SanitizeDisplayName(lastName) == nil {
-		return true
+	if lastName != nil && *lastName != "" {
+		if containsAlphanumeric(*lastName) && SanitizeDisplayName(lastName) == nil {
+			return true
+		}
 	}
 	return false
 }

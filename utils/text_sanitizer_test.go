@@ -50,6 +50,16 @@ func TestSanitizeUsername(t *testing.T) {
 			input:    stringPtr("@ioajfd123"),
 			expected: stringPtr("ioajfd123"),
 		},
+		{
+			name:     "valid username with www substring",
+			input:    stringPtr("tsstewww"),
+			expected: stringPtr("tsstewww"),
+		},
+		{
+			name:     "valid username with @ and www substring",
+			input:    stringPtr("@tsstewww"),
+			expected: stringPtr("tsstewww"),
+		},
 	}
 
 	for _, tt := range tests {
@@ -78,6 +88,11 @@ func TestSanitizeDisplayName(t *testing.T) {
 			name:     "valid Russian name Alexey",
 			input:    stringPtr("Алексей"),
 			expected: stringPtr("Алексей"),
+		},
+		{
+			name:     "valid display name with special chars",
+			input:    stringPtr("$_"),
+			expected: stringPtr("$"),
 		},
 		{
 			name:     "display name with URL",
@@ -151,6 +166,20 @@ func TestIsSuspiciousUser(t *testing.T) {
 			username:  stringPtr("user456"),
 			firstName: stringPtr("Алексей"),
 			lastName:  stringPtr(""),
+			expected:  false,
+		},
+		{
+			name:      "valid user tsstewww with special chars firstName",
+			username:  stringPtr("tsstewww"),
+			firstName: stringPtr("$_"),
+			lastName:  nil,
+			expected:  false,
+		},
+		{
+			name:      "valid user seleqep with dot firstName",
+			username:  stringPtr("seleqep"),
+			firstName: stringPtr("."),
+			lastName:  nil,
 			expected:  false,
 		},
 		{
