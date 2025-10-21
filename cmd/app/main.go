@@ -6,7 +6,6 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/robfig/cron/v3"
 	"log"
 	"log/slog"
 	"net/http"
@@ -15,7 +14,6 @@ import (
 	"remnawave-tg-shop-bot/internal/config"
 	"remnawave-tg-shop-bot/internal/database"
 	"remnawave-tg-shop-bot/internal/handler"
-	"remnawave-tg-shop-bot/internal/notification"
 	"remnawave-tg-shop-bot/internal/remnawave"
 	"remnawave-tg-shop-bot/internal/sync"
 	"remnawave-tg-shop-bot/internal/translation"
@@ -77,7 +75,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/healthcheck", fullHealthHandler(pool, rw))
 	if config.GetTributeWebHookUrl() != "" {
-		tributeHandler := tribute.NewClient(nil, customerRepository)
+		tributeHandler := tribute.NewClient(nil, nil)
 		mux.Handle(config.GetTributeWebHookUrl(), tributeHandler.WebHookHandler())
 	}
 
