@@ -15,6 +15,9 @@ import (
 	"remnawave-tg-shop-bot/internal/database"
 )
 
+// pendingRenames хранит соответствие chatID -> subscriptionID для ожидающего переименования
+var pendingRenames = make(map[int64]int64)
+
 // parseCallbackData parses callback data in format "action?key1=value1&key2=value2"
 func parseCallbackData(callbackData string) map[string]string {
 	result := make(map[string]string)
