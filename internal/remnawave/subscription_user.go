@@ -2,7 +2,6 @@ package remnawave
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	remapi "github.com/Jolymmiles/remnawave-api-go/v2/api"
 	"github.com/google/uuid"
@@ -10,7 +9,6 @@ import (
 	"remnawave-tg-shop-bot/internal/config"
 	"remnawave-tg-shop-bot/utils"
 	"strconv"
-	"strings"
 	"time"
 )
 
