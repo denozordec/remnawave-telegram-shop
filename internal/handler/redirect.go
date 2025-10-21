@@ -7,9 +7,8 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// afterSubscriptionCreated: просто вызывает existing MySubscriptionsCallbackHandler через обычный EditMessageText
+// afterSubscriptionCreated: напрямую вызывает рендер через существующий handler
 func (h Handler) afterSubscriptionCreated(ctx context.Context, b *bot.Bot, chatID int64, messageID int) {
-	// Отрисуем список подписок напрямую, не создавая искусственный CallbackQuery
-	upd := &models.Update{CallbackQuery: &models.CallbackQuery{From: &models.User{ID: chatID}, Message: &models.Message{Chat: &models.Chat{ID: chatID}, ID: messageID}, Data: CallbackMySubscriptions}}
+	upd := &models.Update{CallbackQuery: &models.CallbackQuery{From: models.User{ID: chatID}, Message: models.Message{Chat: &models.Chat{ID: chatID}, ID: messageID}, Data: CallbackMySubscriptions}}
 	h.MySubscriptionsCallbackHandler(ctx, b, upd)
 }
