@@ -8,7 +8,6 @@ import (
 	"log/slog"
 
 	"remnawave-tg-shop-bot/internal/config"
-	"remnawave-tg-shop-bot/internal/database"
 	"remnawave-tg-shop-bot/utils"
 )
 
@@ -28,10 +27,6 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 		return
 	}
 
-	// Убираем старую блокирующую проверку по customer.SubscriptionLink,
-	// чтобы триал работал и при наличии старой подписки и при множественных подписках
-	// if c.SubscriptionLink != nil { return }
-	
 	callback := update.CallbackQuery.Message.Message
 	ctxWithUsername := context.WithValue(ctx, "username", update.CallbackQuery.From.Username)
 	_, err = h.paymentService.ActivateTrial(ctxWithUsername, update.CallbackQuery.From.ID)
