@@ -7,9 +7,9 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// afterSubscriptionCreated redirects user to pretty subscriptions list
+// afterSubscriptionCreated: просто вызывает existing MySubscriptionsCallbackHandler через обычный EditMessageText
 func (h Handler) afterSubscriptionCreated(ctx context.Context, b *bot.Bot, chatID int64, messageID int) {
-	// Reuse MySubscriptionsCallbackHandler rendering with a synthetic callback update
-	upd := &models.Update{CallbackQuery: &models.CallbackQuery{From: &models.User{ID: chatID}, Message: &models.Message{Message: &models.Message{Chat: &models.Chat{ID: chatID}, ID: messageID}}, Data: CallbackMySubscriptions}}
+	// Отрисуем список подписок напрямую, не создавая искусственный CallbackQuery
+	upd := &models.Update{CallbackQuery: &models.CallbackQuery{From: &models.User{ID: chatID}, Message: &models.Message{Chat: &models.Chat{ID: chatID}, ID: messageID}, Data: CallbackMySubscriptions}}
 	h.MySubscriptionsCallbackHandler(ctx, b, upd)
 }
