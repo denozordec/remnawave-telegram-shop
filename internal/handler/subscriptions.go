@@ -3,7 +3,9 @@ package handler
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -12,6 +14,30 @@ import (
 
 	"remnawave-tg-shop-bot/internal/database"
 )
+
+// parseCallbackData parses callback data in format "action?key1=value1&key2=value2"
+func parseCallbackData(callbackData string) map[string]string {
+	result := make(map[string]string)
+	
+	parts := strings.SplitN(callbackData, "?", 2)
+	if len(parts) < 2 {
+		return result
+	}
+	
+	queryString := parts[1]
+	values, err := url.ParseQuery(queryString)
+	if err != nil {
+		return result
+	}
+	
+	for key, vals := range values {
+		if len(vals) > 0 {
+			result[key] = vals[0]
+		}
+	}
+	
+	return result
+}
 
 // MySubscriptionsCallbackHandler обрабатывает запрос на показ всех подписок пользователя
 func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
