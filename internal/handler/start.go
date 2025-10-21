@@ -154,41 +154,76 @@ func (h Handler) resolveConnectButton(lang string) []models.InlineKeyboardButton
 func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCode string) [][]models.InlineKeyboardButton {
 	var inlineKeyboard [][]models.InlineKeyboardButton
 
-	if existingCustomer.SubscriptionLink == nil && config.TrialDays() > 0 {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackTrial}})
-	}
+	// Получаем количество активных подписок
+	activeSubscriptionsCount, _ := h.GetActiveSubscriptionsCount(context.Background(), existingCustomer.ID)
 
-	if existingCustomer.SubscriptionLink != nil && existingCustomer.ExpireAt.After(time.Now()) {
+	// Если есть активные подписки, показываем кнопку "Мои подписки"
+	if activeSubscriptionsCount > 0 {
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "my_subscriptions_button"), CallbackData: CallbackMySubscriptions},
+		})
 		inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
 	}
 
+	// Кнопка покупки/добавления подписки
+	if activeSubscriptionsCount > 0 {
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "add_subscription_button"), CallbackData: CallbackBuy},
+		})
+	} else {
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy},
+		})
+	}
+
+	// Кнопка триала (только если нет подписок)
+	if existingCustomer.SubscriptionLink == nil && config.TrialDays() > 0 && activeSubscriptionsCount == 0 {
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackTrial},
+		})
+	}
+
 	if config.GetReferralDays() > 0 {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "referral_button"), CallbackData: CallbackReferral}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "referral_button"), CallbackData: CallbackReferral},
+		})
 	}
 
 	if config.ServerStatusURL() != "" {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "server_status_button"), URL: config.ServerStatusURL()}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "server_status_button"), URL: config.ServerStatusURL()},
+		})
 	}
 
 	if config.SupportURL() != "" {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "support_button"), URL: config.SupportURL()}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "support_button"), URL: config.SupportURL()},
+		})
 	}
 
 	if config.FeedbackURL() != "" {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "feedback_button"), URL: config.FeedbackURL()}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "feedback_button"), URL: config.FeedbackURL()},
+		})
 	}
 
 	if config.ChannelURL() != "" {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "channel_button"), URL: config.ChannelURL()}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "channel_button"), URL: config.ChannelURL()},
+		})
 	}
 
 	if config.TosURL() != "" {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "tos_button"), URL: config.TosURL()}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "tos_button"), URL: config.TosURL()},
+		})
 	}
 
 	// Добавляем кнопку рассылки только для админов
 	if existingCustomer.TelegramID == config.GetAdminTelegramId() {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "broadcast_button"), CallbackData: CallbackBroadcastMenu}})
+		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+			{Text: h.translation.GetText(langCode, "broadcast_button"), CallbackData: CallbackBroadcastMenu},
+		})
 	}
 	
 	return inlineKeyboard
