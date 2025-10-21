@@ -9,6 +9,10 @@ const (
 	CallbackTrial    = "trial"
 	CallbackReferral = "referral"
 	
+	// Multiple subscriptions callbacks
+	CallbackMySubscriptions         = "my_subscriptions"
+	CallbackDeactivateSubscription  = "deactivate_subscription"
+	
 	// Broadcast callbacks
 	CallbackBroadcastMenu     = "broadcast_menu"
 	CallbackBroadcastToAll    = "broadcast_to_all"
