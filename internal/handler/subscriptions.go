@@ -44,7 +44,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 		// Если нет активных подписок
 		messageText = h.translation.GetText(langCode, "no_active_subscriptions")
 		keyboard = [][]models.InlineKeyboardButton{
-			{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy}},
+			{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackTrial}},
 			{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
 		}
 	} else {
@@ -93,7 +93,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 
 		// Добавляем общие кнопки управления
 		keyboard = append(keyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "add_subscription_button"), CallbackData: CallbackBuy},
+			{Text: h.translation.GetText(langCode, "add_subscription_button"), CallbackData: CallbackTrial},
 		})
 	}
 
@@ -216,7 +216,7 @@ func (h Handler) GetSubscriptionsList(ctx context.Context, customer *database.Cu
 
 	if len(activeSubscriptions) == 0 {
 		return h.translation.GetText(langCode, "no_active_subscriptions"), [][]models.InlineKeyboardButton{
-			{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy}},
+			{{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackTrial}},
 			{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
 		}
 	}
@@ -241,6 +241,9 @@ func (h Handler) GetSubscriptionsList(ctx context.Context, customer *database.Cu
 	// Добавляем кнопки управления
 	keyboard = append(keyboard, []models.InlineKeyboardButton{
 		{Text: h.translation.GetText(langCode, "my_subscriptions_button"), CallbackData: CallbackMySubscriptions},
+	})
+	keyboard = append(keyboard, []models.InlineKeyboardButton{
+		{Text: h.translation.GetText(langCode, "add_subscription_button"), CallbackData: CallbackTrial},
 	})
 	keyboard = append(keyboard, []models.InlineKeyboardButton{
 		{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart},
