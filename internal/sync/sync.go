@@ -19,6 +19,11 @@ func NewSyncService(client *remnawave.Client, customerRepository *database.Custo
 	}
 }
 
+// GetClient returns the remnawave client for handler access
+func (s *SyncService) GetClient() *remnawave.Client {
+	return s.client
+}
+
 func (s SyncService) Sync() {
 	slog.Info("Starting sync")
 	ctx := context.Background()
