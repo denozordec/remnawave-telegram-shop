@@ -1,5 +1,4 @@
-package handler
-
+// ... other constants
 const (
 	CallbackBuy      = "buy"
 	CallbackSell     = "sell"
@@ -12,6 +11,8 @@ const (
 	// Multiple subscriptions callbacks
 	CallbackMySubscriptions         = "my_subscriptions"
 	CallbackDeactivateSubscription  = "deactivate_subscription"
+	CallbackRenameSubscription      = "rename_subscription"
+	CallbackRenameConfirm          = "rename_confirm"
 	
 	// Broadcast callbacks
 	CallbackBroadcastMenu     = "broadcast_menu"
