@@ -9,12 +9,12 @@ import (
 
 func (h Handler) ConnectCommandHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil { return }
-	upd := &models.Update{ CallbackQuery: &models.CallbackQuery{ From: *update.Message.From, Message: *update.Message, Data: CallbackMySubscriptions } }
-	h.MySubscriptionsCallbackHandler(ctx, b, upd)
+	// Прямой вызов логики рендера подписок для чата
+	h.renderMySubscriptionsForChat(ctx, b, update.Message.Chat.ID, update.Message.ID, update.Message.From.LanguageCode)
 }
 
 func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.CallbackQuery == nil { return }
-	update.CallbackQuery.Data = CallbackMySubscriptions
-	h.MySubscriptionsCallbackHandler(ctx, b, update)
+	msg := update.CallbackQuery.Message.Message
+	h.renderMySubscriptionsForChat(ctx, b, msg.Chat.ID, msg.ID, update.CallbackQuery.From.LanguageCode)
 }
