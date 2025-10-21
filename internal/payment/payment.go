@@ -18,15 +18,16 @@ import (
 )
 
 type PaymentService struct {
-	purchaseRepository *database.PurchaseRepository
-	remnawaveClient    *remnawave.Client
-	customerRepository *database.CustomerRepository
-	telegramBot        *bot.Bot
-	translation        *translation.Manager
-	cryptoPayClient    *cryptopay.Client
-	yookasaClient      *yookasa.Client
-	referralRepository *database.ReferralRepository
-	cache              *cache.Cache
+	purchaseRepository     *database.PurchaseRepository
+	remnawaveClient        *remnawave.Client
+	customerRepository     *database.CustomerRepository
+	subscriptionRepository *database.SubscriptionRepository
+	telegramBot            *bot.Bot
+	translation            *translation.Manager
+	cryptoPayClient        *cryptopay.Client
+	yookasaClient          *yookasa.Client
+	referralRepository     *database.ReferralRepository
+	cache                  *cache.Cache
 }
 
 func NewPaymentService(
@@ -34,6 +35,7 @@ func NewPaymentService(
 	purchaseRepository *database.PurchaseRepository,
 	remnawaveClient *remnawave.Client,
 	customerRepository *database.CustomerRepository,
+	subscriptionRepository *database.SubscriptionRepository,
 	telegramBot *bot.Bot,
 	cryptoPayClient *cryptopay.Client,
 	yookasaClient *yookasa.Client,
@@ -41,15 +43,16 @@ func NewPaymentService(
 	cache *cache.Cache,
 ) *PaymentService {
 	return &PaymentService{
-		purchaseRepository: purchaseRepository,
-		remnawaveClient:    remnawaveClient,
-		customerRepository: customerRepository,
-		telegramBot:        telegramBot,
-		translation:        translation,
-		cryptoPayClient:    cryptoPayClient,
-		yookasaClient:      yookasaClient,
-		referralRepository: referralRepository,
-		cache:              cache,
+		purchaseRepository:     purchaseRepository,
+		remnawaveClient:        remnawaveClient,
+		customerRepository:     customerRepository,
+		subscriptionRepository: subscriptionRepository,
+		telegramBot:            telegramBot,
+		translation:            translation,
+		cryptoPayClient:        cryptoPayClient,
+		yookasaClient:          yookasaClient,
+		referralRepository:     referralRepository,
+		cache:                  cache,
 	}
 }
 
@@ -80,16 +83,44 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 		}
 	}
 
+	// Создаем пользователя в RemnaWave
 	user, err := s.remnawaveClient.CreateOrUpdateUser(ctx, customer.ID, customer.TelegramID, config.TrafficLimit(), purchase.Month*config.DaysInMonth())
 	if err != nil {
 		return err
 	}
 
+	// Помечаем покупку как оплаченную
 	err = s.purchaseRepository.MarkAsPaid(ctx, purchase.ID)
 	if err != nil {
 		return err
 	}
 
+	// Получаем текущие активные подписки для генерации имени
+	activeSubscriptions, err := s.subscriptionRepository.GetActiveSubscriptions(ctx, customer.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get active subscriptions: %w", err)
+	}
+
+	// Генерируем название подписки
+	subscriptionName := fmt.Sprintf("%s #%d", s.translation.GetText(customer.Language, "subscription_name"), len(activeSubscriptions)+1)
+	subscriptionDescription := fmt.Sprintf("%d %s", purchase.Month, s.translation.GetText(customer.Language, "months_word"))
+
+	// Создаем новую подписку
+	newSubscription := &database.Subscription{
+		CustomerID:       customer.ID,
+		SubscriptionLink: user.SubscriptionUrl,
+		ExpireAt:         *user.ExpireAt,
+		IsActive:         true,
+		Name:             subscriptionName,
+		Description:      subscriptionDescription,
+	}
+
+	_, err = s.subscriptionRepository.CreateSubscription(ctx, newSubscription)
+	if err != nil {
+		return fmt.Errorf("failed to create subscription: %w", err)
+	}
+
+	// Обновляем данные клиента (оставляем для обратной совместимости)
 	customerFilesToUpdate := map[string]interface{}{
 		"subscription_link": user.SubscriptionUrl,
 		"expire_at":         user.ExpireAt,
@@ -100,17 +131,19 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 		return err
 	}
 
+	// Отправляем сообщение об успешной активации
 	_, err = s.telegramBot.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: customer.TelegramID,
-		Text:   s.translation.GetText(customer.Language, "subscription_activated"),
+		Text:   fmt.Sprintf(s.translation.GetText(customer.Language, "subscription_activated_multiple"), subscriptionName),
 		ReplyMarkup: models.InlineKeyboardMarkup{
-			InlineKeyboard: s.createConnectKeyboard(customer),
+			InlineKeyboard: s.createSubscriptionsKeyboard(customer),
 		},
 	})
 	if err != nil {
 		return err
 	}
 
+	// Обработка реферальных бонусов
 	ctxReferee := context.Background()
 	referee, err := s.referralRepository.FindByReferee(ctxReferee, customer.TelegramID)
 	if referee == nil {
@@ -130,6 +163,22 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	if err != nil {
 		return err
 	}
+
+	// Создаем бонусную подписку для реферера
+	bonusSubscription := &database.Subscription{
+		CustomerID:       refereeCustomer.ID,
+		SubscriptionLink: refereeUser.GetSubscriptionUrl(),
+		ExpireAt:         *refereeUser.GetExpireAt(),
+		IsActive:         true,
+		Name:             s.translation.GetText(refereeCustomer.Language, "referral_bonus_subscription"),
+		Description:      s.translation.GetText(refereeCustomer.Language, "referral_bonus_description"),
+	}
+
+	_, err = s.subscriptionRepository.CreateSubscription(ctxReferee, bonusSubscription)
+	if err != nil {
+		return err
+	}
+
 	refereeUserFilesToUpdate := map[string]interface{}{
 		"subscription_link": refereeUser.GetSubscriptionUrl(),
 		"expire_at":         refereeUser.GetExpireAt(),
@@ -148,7 +197,7 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 		ParseMode: models.ParseModeHTML,
 		Text:      s.translation.GetText(refereeCustomer.Language, "referral_bonus_granted"),
 		ReplyMarkup: models.InlineKeyboardMarkup{
-			InlineKeyboard: s.createConnectKeyboard(refereeCustomer),
+			InlineKeyboard: s.createSubscriptionsKeyboard(refereeCustomer),
 		},
 	})
 	slog.Info("purchase processed", "purchase_id", utils.MaskHalfInt64(purchase.ID), "type", purchase.InvoiceType, "customer_id", utils.MaskHalfInt64(customer.ID))
@@ -156,8 +205,13 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	return nil
 }
 
-func (s PaymentService) createConnectKeyboard(customer *database.Customer) [][]models.InlineKeyboardButton {
+func (s PaymentService) createSubscriptionsKeyboard(customer *database.Customer) [][]models.InlineKeyboardButton {
 	var inlineCustomerKeyboard [][]models.InlineKeyboardButton
+
+	// Кнопка "Мои подписки"
+	inlineCustomerKeyboard = append(inlineCustomerKeyboard, []models.InlineKeyboardButton{
+		{Text: s.translation.GetText(customer.Language, "my_subscriptions_button"), CallbackData: "my_subscriptions"},
+	})
 
 	if config.GetMiniAppURL() != "" {
 		inlineCustomerKeyboard = append(inlineCustomerKeyboard, []models.InlineKeyboardButton{
@@ -175,6 +229,11 @@ func (s PaymentService) createConnectKeyboard(customer *database.Customer) [][]m
 		{Text: s.translation.GetText(customer.Language, "back_button"), CallbackData: "start"},
 	})
 	return inlineCustomerKeyboard
+}
+
+// Оставляем старую функцию для обратной совместимости
+func (s PaymentService) createConnectKeyboard(customer *database.Customer) [][]models.InlineKeyboardButton {
+	return s.createSubscriptionsKeyboard(customer)
 }
 
 func (s PaymentService) CreatePurchase(ctx context.Context, amount int, months int, customer *database.Customer, invoiceType database.InvoiceType) (url string, purchaseId int64, err error) {
@@ -329,6 +388,22 @@ func (s PaymentService) ActivateTrial(ctx context.Context, telegramId int64) (st
 		return "", err
 	}
 
+	// Создаем триальную подписку
+	trialSubscription := &database.Subscription{
+		CustomerID:       customer.ID,
+		SubscriptionLink: user.GetSubscriptionUrl(),
+		ExpireAt:         *user.GetExpireAt(),
+		IsActive:         true,
+		Name:             s.translation.GetText(customer.Language, "trial_subscription_name"),
+		Description:      s.translation.GetText(customer.Language, "trial_subscription_description"),
+	}
+
+	_, err = s.subscriptionRepository.CreateSubscription(ctx, trialSubscription)
+	if err != nil {
+		return "", fmt.Errorf("failed to create trial subscription: %w", err)
+	}
+
+	// Обновляем клиента для обратной совместимости
 	customerFilesToUpdate := map[string]interface{}{
 		"subscription_link": user.GetSubscriptionUrl(),
 		"expire_at":         user.GetExpireAt(),
@@ -340,7 +415,6 @@ func (s PaymentService) ActivateTrial(ctx context.Context, telegramId int64) (st
 	}
 
 	return user.GetSubscriptionUrl(), nil
-
 }
 
 func (s PaymentService) CancelPayment(purchaseId int64) error {
