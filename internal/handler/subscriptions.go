@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
@@ -53,7 +52,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 		messageText = h.translation.GetText(langCode, "your_subscriptions")
 		messageText += "\n\n"
 
-		for i, sub := range activeSubscriptions {
+		for _, sub := range activeSubscriptions {
 			// Форматируем дату истечения
 			expireDate := sub.ExpireAt.Format("02.01.2006 15:04")
 			
