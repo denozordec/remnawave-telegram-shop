@@ -2,6 +2,8 @@ package remnawave
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	remapi "github.com/Jolymmiles/remnawave-api-go/v2/api"
 	"github.com/google/uuid"
@@ -12,10 +14,18 @@ import (
 	"time"
 )
 
+// shortHash returns 6-char hex of SHA1 over input
+func shortHash(s string) string {
+	sum := sha1.Sum([]byte(s))
+	return hex.EncodeToString(sum[:])[:6]
+}
+
 // CreateUserForSubscription creates a fresh user for a new subscription to ensure unique credentials/URL per subscription
 func (r *Client) CreateUserForSubscription(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, seq int) (*remapi.UserDto, error) {
-	// Build unique username per subscription: {customerId}_{telegramId}_{seq}
-	username := fmt.Sprintf("%d_%d_%d", customerId, telegramId, seq)
+	// Build base and add short hash to avoid username collisions: {customerId}_{telegramId}_{seq}_{hash}
+	base := fmt.Sprintf("%d_%d_%d", customerId, telegramId, seq)
+	h := shortHash(fmt.Sprintf("%s_%d", base, time.Now().UnixNano()))
+	username := fmt.Sprintf("%s_%s", base, h)
 	expireAt := time.Now().UTC().AddDate(0, 0, days)
 
 	resp, err := r.client.InternalSquadControllerGetInternalSquads(ctx)
