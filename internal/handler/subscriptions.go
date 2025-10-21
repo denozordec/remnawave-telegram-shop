@@ -65,7 +65,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 				status = "❌" // Истекла
 			}
 
-			messageText += fmt.Sprintf("%s **%s**\n%s\n%s %s\n\n",
+			messageText += fmt.Sprintf("%s <b>%s</b>\n%s\n%s %s\n\n",
 				status,
 				sub.Name,
 				sub.Description,
@@ -105,7 +105,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
-		ParseMode: models.ParseModeMarkdown,
+		ParseMode: models.ParseModeHTML,
 		ReplyMarkup: models.InlineKeyboardMarkup{
 			InlineKeyboard: keyboard,
 		},
@@ -178,7 +178,7 @@ func (h Handler) DeactivateSubscriptionCallbackHandler(ctx context.Context, b *b
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
-		ParseMode: models.ParseModeMarkdown,
+		ParseMode: models.ParseModeHTML,
 		ReplyMarkup: models.InlineKeyboardMarkup{
 			InlineKeyboard: [][]models.InlineKeyboardButton{
 				{{Text: h.translation.GetText(langCode, "my_subscriptions_button"), CallbackData: CallbackMySubscriptions}},
@@ -229,7 +229,7 @@ func (h Handler) GetSubscriptionsList(ctx context.Context, customer *database.Cu
 		// Проверяем, не истекла ли подписка
 		if sub.ExpireAt.After(time.Now()) {
 			expireDate := sub.ExpireAt.Format("02.01.2006 15:04")
-			messageText += fmt.Sprintf("🔗 **%s**\n%s %s\n\n", sub.Name, h.translation.GetText(langCode, "expires_at"), expireDate)
+			messageText += fmt.Sprintf("🔗 <b>%s</b>\n%s %s\n\n", sub.Name, h.translation.GetText(langCode, "expires_at"), expireDate)
 			
 			// Добавляем кнопку для подключения к этой подписке
 			keyboard = append(keyboard, []models.InlineKeyboardButton{
