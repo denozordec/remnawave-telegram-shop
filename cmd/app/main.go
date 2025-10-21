@@ -62,6 +62,7 @@ func main() {
 
 	// Multiple subscriptions
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackMySubscriptions, bot.MatchTypeExact, h.MySubscriptionsCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackOpenSubscription, bot.MatchTypePrefix, h.OpenSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackDeactivateSubscription, bot.MatchTypePrefix, h.DeactivateSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackRenameSubscription, bot.MatchTypePrefix, h.RenameSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 
