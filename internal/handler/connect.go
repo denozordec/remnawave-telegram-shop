@@ -29,18 +29,19 @@ func (h Handler) ConnectCommandHandler(ctx context.Context, b *bot.Bot, update *
 
 	langCode := update.Message.From.LanguageCode
 
+	// Получаем список подписок и клавиатуру
+	messageText, keyboard := h.GetSubscriptionsList(ctx, customer, langCode)
+
 	isDisabled := true
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:    update.Message.Chat.ID,
-		Text:      buildConnectText(customer, langCode, update),
-		ParseMode: models.ParseModeHTML,
+		Text:      messageText,
+		ParseMode: models.ParseModeMarkdown,
 		LinkPreviewOptions: &models.LinkPreviewOptions{
 			IsDisabled: &isDisabled,
 		},
 		ReplyMarkup: models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
-			},
+			InlineKeyboard: keyboard,
 		},
 	})
 
@@ -64,29 +65,20 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 
 	langCode := update.CallbackQuery.From.LanguageCode
 
-	var markup [][]models.InlineKeyboardButton
-	platform := config.DetectPlatformFromUpdate(update)
-	if config.IsWebAppLinkEnabledForPlatform(platform) {
-		if customer.SubscriptionLink != nil && customer.ExpireAt.After(time.Now()) {
-			markup = append(markup, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "connect_button"),
-				WebApp: &models.WebAppInfo{
-					URL: *customer.SubscriptionLink,
-				}}})
-		}
-	}
-	markup = append(markup, []models.InlineKeyboardButton{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}})
+	// Получаем список подписок и клавиатуру
+	messageText, keyboard := h.GetSubscriptionsList(ctx, customer, langCode)
 
 	isDisabled := true
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
-		ParseMode: models.ParseModeHTML,
-		Text:      buildConnectText(customer, langCode, update),
+		ParseMode: models.ParseModeMarkdown,
+		Text:      messageText,
 		LinkPreviewOptions: &models.LinkPreviewOptions{
 			IsDisabled: &isDisabled,
 		},
 		ReplyMarkup: models.InlineKeyboardMarkup{
-			InlineKeyboard: markup,
+			InlineKeyboard: keyboard,
 		},
 	})
 
@@ -95,6 +87,7 @@ func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update 
 	}
 }
 
+// Оставляем старую функцию для обратной совместимости
 func buildConnectText(customer *database.Customer, langCode string, update *models.Update) string {
 	var info strings.Builder
 
