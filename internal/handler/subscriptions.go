@@ -30,6 +30,7 @@ func parseCallbackData(callbackData string) map[string]string {
 
 // MySubscriptionsCallbackHandler: компактный список (по одной кнопке на строку)
 func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	slog.Info("[CALLBACK] MySubscriptionsCallbackHandler", "data", update.CallbackQuery.Data, "chatID", update.CallbackQuery.Message.Message.Chat.ID)
 	callback := update.CallbackQuery.Message.Message
 	langCode := update.CallbackQuery.From.LanguageCode
 	chatID := callback.Chat.ID
@@ -54,6 +55,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 
 // OpenSubscriptionCallbackHandler: карточка подписки с действиями
 func (h Handler) OpenSubscriptionCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	slog.Info("[CALLBACK] OpenSubscriptionCallbackHandler", "data", update.CallbackQuery.Data, "chatID", update.CallbackQuery.Message.Message.Chat.ID)
 	callback := update.CallbackQuery.Message.Message
 	langCode := update.CallbackQuery.From.LanguageCode
 	chatID := callback.Chat.ID
