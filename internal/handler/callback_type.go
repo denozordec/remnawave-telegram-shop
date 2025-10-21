@@ -11,6 +11,7 @@ const (
 	
 	// Multiple subscriptions callbacks
 	CallbackMySubscriptions        = "my_subscriptions"
+	CallbackOpenSubscription       = "open_subscription"
 	CallbackDeactivateSubscription = "deactivate_subscription"
 	CallbackRenameSubscription     = "rename_subscription"
 	CallbackRenameConfirm         = "rename_confirm"
