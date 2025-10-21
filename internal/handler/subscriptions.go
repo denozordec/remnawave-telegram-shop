@@ -74,30 +74,34 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 			{{Text: h.translation.GetText(langCode, "back_button"), CallbackData: CallbackStart}},
 		}
 	} else {
-		// Формируем список подписок
-		messageText = h.translation.GetText(langCode, "your_subscriptions")
-		messageText += "\n\n"
+		// Красивый список подписок в виде таблицы
+		messageText = "📋 <b>Ваши подписки:</b>\n\n"
+		messageText += "┌────────────────────────────────────┐\n"
 
-		for _, sub := range activeSubscriptions {
+		for i, sub := range activeSubscriptions {
 			// Форматируем дату истечения
 			expireDate := sub.ExpireAt.Format("02.01.2006 15:04")
 			
-			// Определяем статус (активна/истекает)
+			// Определяем статус
 			status := "✅"
+			statusText := "Активна"
 			if sub.ExpireAt.Before(time.Now().Add(24 * time.Hour)) {
-				status = "⚠️" // Истекает в течение 24 часов
+				status = "⚠️"
+				statusText = "Истекает"
 			}
 			if sub.ExpireAt.Before(time.Now()) {
-				status = "❌" // Истекла
+				status = "❌"
+				statusText = "Истекла"
 			}
 
-			messageText += fmt.Sprintf("%s <b>%s</b>\n%s\n%s %s\n\n",
-				status,
-				sub.Name,
-				sub.Description,
-				h.translation.GetText(langCode, "expires_at"),
-				expireDate,
-			)
+			// Красивое оформление каждой подписки
+			messageText += fmt.Sprintf("│ %s <b>%s</b> %s\n", status, sub.Name, strings.Repeat(" ", max(20-len(sub.Name), 0)))
+			messageText += fmt.Sprintf("│ 📅 %s\n", expireDate)
+			messageText += fmt.Sprintf("│ 🟢 %s\n", statusText)
+			
+			if i < len(activeSubscriptions)-1 {
+				messageText += "├────────────────────────────────────┤\n"
+			}
 
 			// Создаем кнопки для каждой подписки
 			subscriptionButtons := []models.InlineKeyboardButton{
@@ -116,6 +120,9 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 
 			keyboard = append(keyboard, subscriptionButtons)
 		}
+
+		// Закрываем таблицу
+		messageText += "└────────────────────────────────────┘\n\n"
 
 		// Добавляем общие кнопки управления
 		keyboard = append(keyboard, []models.InlineKeyboardButton{
@@ -199,7 +206,7 @@ func (h Handler) DeactivateSubscriptionCallbackHandler(ctx context.Context, b *b
 	}
 
 	// Отправляем сообщение об успешной деактивации
-	successText := fmt.Sprintf(h.translation.GetText(langCode, "subscription_deactivated"), subscription.Name)
+	successText := fmt.Sprintf("✅ <b>Подписка деактивирована</b>\n\n🗑 %s успешно отключена", subscription.Name)
 
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
@@ -247,15 +254,15 @@ func (h Handler) GetSubscriptionsList(ctx context.Context, customer *database.Cu
 		}
 	}
 
-	// Формируем текст со списком подписок
-	messageText := h.translation.GetText(langCode, "your_active_subscriptions") + "\n\n"
+	// Красивое оформление для connect сообщения
+	messageText := "🎆 <b>Ваши активные подписки:</b>\n\n"
 	var keyboard [][]models.InlineKeyboardButton
 
 	for _, sub := range activeSubscriptions {
 		// Проверяем, не истекла ли подписка
 		if sub.ExpireAt.After(time.Now()) {
 			expireDate := sub.ExpireAt.Format("02.01.2006 15:04")
-			messageText += fmt.Sprintf("🔗 <b>%s</b>\n%s %s\n\n", sub.Name, h.translation.GetText(langCode, "expires_at"), expireDate)
+			messageText += fmt.Sprintf("✅ <b>%s</b>\n📅 %s %s\n\n", sub.Name, h.translation.GetText(langCode, "expires_at"), expireDate)
 			
 			// Добавляем кнопку для подключения к этой подписке
 			keyboard = append(keyboard, []models.InlineKeyboardButton{
@@ -276,4 +283,9 @@ func (h Handler) GetSubscriptionsList(ctx context.Context, customer *database.Cu
 	})
 
 	return messageText, keyboard
+}
+
+func max(a, b int) int {
+	if a > b { return a }
+	return b
 }
