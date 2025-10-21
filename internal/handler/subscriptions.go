@@ -103,9 +103,10 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 				messageText += "├────────────────────────────────────┤\n"
 			}
 
-			// Создаем кнопки для каждой подписки
+			// Создаем кнопки для каждой подписки (с кнопкой переименования)
 			subscriptionButtons := []models.InlineKeyboardButton{
 				{Text: fmt.Sprintf("🔗 %s", sub.Name), URL: sub.SubscriptionLink},
+				{Text: fmt.Sprintf("✏️ Переименовать"), CallbackData: fmt.Sprintf("%s?id=%d", CallbackRenameSubscription, sub.ID)},
 			}
 
 			// Добавляем кнопку деактивации (только для активных)
@@ -143,6 +144,74 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 			InlineKeyboard: keyboard,
 		},
 		Text: messageText,
+	})
+
+	if err != nil {
+		slog.Error("Error editing message", "error", err)
+	}
+}
+
+// RenameSubscriptionCallbackHandler обрабатывает начало переименования
+func (h Handler) RenameSubscriptionCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	callback := update.CallbackQuery.Message.Message
+	langCode := update.CallbackQuery.From.LanguageCode
+	chatID := callback.Chat.ID
+
+	// Парсим ID подписки
+	callbackQuery := parseCallbackData(update.CallbackQuery.Data)
+	subscriptionIDStr, exists := callbackQuery["id"]
+	if !exists {
+		slog.Error("Subscription ID not found in callback data")
+		return
+	}
+
+	subscriptionID, err := strconv.ParseInt(subscriptionIDStr, 10, 64)
+	if err != nil {
+		slog.Error("Error parsing subscription ID", "error", err)
+		return
+	}
+
+	// Получаем клиента
+	customer, err := h.customerRepository.FindByTelegramId(ctx, chatID)
+	if err != nil {
+		slog.Error("Error finding customer", "error", err, "chatID", chatID)
+		return
+	}
+	if customer == nil {
+		slog.Error("Customer not found", "chatID", chatID)
+		return
+	}
+
+	// Получаем подписку
+	subscription, err := h.subscriptionRepository.GetSubscriptionByID(ctx, subscriptionID)
+	if err != nil {
+		slog.Error("Error getting subscription", "error", err, "subscriptionID", subscriptionID)
+		return
+	}
+	if subscription == nil {
+		slog.Error("Subscription not found", "subscriptionID", subscriptionID)
+		return
+	}
+
+	// Проверяем владение
+	if subscription.CustomerID != customer.ID {
+		slog.Error("Subscription doesn't belong to this customer", "subscriptionID", subscriptionID, "customerID", customer.ID)
+		return
+	}
+
+	// Показываем форму ввода нового имени
+	renameText := fmt.Sprintf("✏️ <b>Переименование подписки</b>\n\n📝 Текущее имя: <b>%s</b>\n\n⚙️ Отправьте новое имя следующим сообщением:", subscription.Name)
+	
+	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+		ChatID:    callback.Chat.ID,
+		MessageID: callback.ID,
+		ParseMode: models.ParseModeHTML,
+		ReplyMarkup: models.InlineKeyboardMarkup{
+			InlineKeyboard: [][]models.InlineKeyboardButton{
+				{{Text: "❌ Отмена", CallbackData: CallbackMySubscriptions}},
+			},
+		},
+		Text: renameText,
 	})
 
 	if err != nil {
