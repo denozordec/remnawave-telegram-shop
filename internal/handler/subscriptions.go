@@ -106,7 +106,7 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 			// Создаем кнопки для каждой подписки (с кнопкой переименования)
 			subscriptionButtons := []models.InlineKeyboardButton{
 				{Text: fmt.Sprintf("🔗 %s", sub.Name), URL: sub.SubscriptionLink},
-				{Text: fmt.Sprintf("✏️ Переименовать"), CallbackData: fmt.Sprintf("%s?id=%d", CallbackRenameSubscription, sub.ID)},
+				{Text: "✏️ Переименовать", CallbackData: fmt.Sprintf("%s?id=%d", CallbackRenameSubscription, sub.ID)},
 			}
 
 			// Добавляем кнопку деактивации (только для активных)
@@ -154,7 +154,6 @@ func (h Handler) MySubscriptionsCallbackHandler(ctx context.Context, b *bot.Bot,
 // RenameSubscriptionCallbackHandler обрабатывает начало переименования
 func (h Handler) RenameSubscriptionCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	callback := update.CallbackQuery.Message.Message
-	langCode := update.CallbackQuery.From.LanguageCode
 	chatID := callback.Chat.ID
 
 	// Парсим ID подписки
@@ -171,52 +170,21 @@ func (h Handler) RenameSubscriptionCallbackHandler(ctx context.Context, b *bot.B
 		return
 	}
 
-	// Получаем клиента
-	customer, err := h.customerRepository.FindByTelegramId(ctx, chatID)
-	if err != nil {
-		slog.Error("Error finding customer", "error", err, "chatID", chatID)
-		return
-	}
-	if customer == nil {
-		slog.Error("Customer not found", "chatID", chatID)
-		return
-	}
+	// Сохраняем ожидание нового имени
+	pendingRenames[chatID] = subscriptionID
 
-	// Получаем подписку
-	subscription, err := h.subscriptionRepository.GetSubscriptionByID(ctx, subscriptionID)
-	if err != nil {
-		slog.Error("Error getting subscription", "error", err, "subscriptionID", subscriptionID)
-		return
-	}
-	if subscription == nil {
-		slog.Error("Subscription not found", "subscriptionID", subscriptionID)
-		return
-	}
-
-	// Проверяем владение
-	if subscription.CustomerID != customer.ID {
-		slog.Error("Subscription doesn't belong to this customer", "subscriptionID", subscriptionID, "customerID", customer.ID)
-		return
-	}
-
-	// Показываем форму ввода нового имени
-	renameText := fmt.Sprintf("✏️ <b>Переименование подписки</b>\n\n📝 Текущее имя: <b>%s</b>\n\n⚙️ Отправьте новое имя следующим сообщением:", subscription.Name)
-	
+	// Сообщение с инструкцией
+	text := "✏️ <b>Переименование подписки</b>\n\nОтправьте новое имя одним сообщением (до 50 символов).\n\n❕ Спецсимволы &lt; &gt; \" ' & запрещены."
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:    callback.Chat.ID,
 		MessageID: callback.ID,
 		ParseMode: models.ParseModeHTML,
-		ReplyMarkup: models.InlineKeyboardMarkup{
-			InlineKeyboard: [][]models.InlineKeyboardButton{
-				{{Text: "❌ Отмена", CallbackData: CallbackMySubscriptions}},
-			},
-		},
-		Text: renameText,
+		ReplyMarkup: models.InlineKeyboardMarkup{InlineKeyboard: [][]models.InlineKeyboardButton{
+			{{Text: "❌ Отмена", CallbackData: CallbackMySubscriptions}},
+		}},
+		Text: text,
 	})
-
-	if err != nil {
-		slog.Error("Error editing message", "error", err)
-	}
+	if err != nil { slog.Error("Error editing rename prompt", "error", err) }
 }
 
 // DeactivateSubscriptionCallbackHandler обрабатывает деактивацию подписки
