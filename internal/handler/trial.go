@@ -6,33 +6,24 @@ import (
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"log/slog"
-
-	"remnawave-tg-shop-bot/internal/config"
-	"remnawave-tg-shop-bot/utils"
+	"remnawave-tg-shop-bot/internal/subscriptions"
 )
 
 func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	// Поддержка и новых, и старых пользователей: всегда создаём бесплатную подписку, если TRIAL_DAYS>0
-	if config.TrialDays() == 0 {
-		return
+	// Всегда создаём бесплатную подписку через free service
+	svc := &subscriptions.Service{
+		SubsRepo:  h.subscriptionRepository,
+		Customers: h.customerRepository,
+		RW:        h.syncService.RemnawaveClient(),
+		Bot:       b,
+		Translate: h.translation,
 	}
-
-	c, err := h.customerRepository.FindByTelegramId(ctx, update.CallbackQuery.From.ID)
-	if err != nil {
-		slog.Error("Error finding customer", err)
-		return
-	}
-	if c == nil {
-		slog.Error("customer not exist", "telegramId", utils.MaskHalfInt64(update.CallbackQuery.From.ID), "error", err)
-		return
-	}
-
 	callback := update.CallbackQuery.Message.Message
-	ctxWithUsername := context.WithValue(ctx, "username", update.CallbackQuery.From.Username)
-	_, err = h.paymentService.ActivateTrial(ctxWithUsername, update.CallbackQuery.From.ID)
+	_, err := svc.ActivateFree(context.WithValue(ctx, "username", update.CallbackQuery.From.Username), update.CallbackQuery.From.ID)
 	langCode := update.CallbackQuery.From.LanguageCode
-	
-	// Показываем клавиатуру подключения/навигации
+	if err != nil {
+		slog.Error("Error activating free subscription", "err", err)
+	}
 	_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
 		ChatID:      callback.Chat.ID,
 		MessageID:   callback.ID,
@@ -43,14 +34,4 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 	if err != nil {
 		slog.Error("Error sending trial activation message", err)
 	}
-}
-
-func (h Handler) createConnectKeyboard(lang string) [][]models.InlineKeyboardButton {
-	var inlineCustomerKeyboard [][]models.InlineKeyboardButton
-	inlineCustomerKeyboard = append(inlineCustomerKeyboard, h.resolveConnectButton(lang))
-
-	inlineCustomerKeyboard = append(inlineCustomerKeyboard, []models.InlineKeyboardButton{
-		{Text: h.translation.GetText(lang, "back_button"), CallbackData: CallbackStart},
-	})
-	return inlineCustomerKeyboard
 }
