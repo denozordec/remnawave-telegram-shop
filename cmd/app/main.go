@@ -53,6 +53,7 @@ func main() {
 	cache := cache.NewCache(30 * time.Minute)
 	customerRepository := database.NewCustomerRepository(pool)
 	purchaseRepository := database.NewPurchaseRepository(pool)
+	subscriptionRepository := database.NewSubscriptionRepository(pool) // Добавляем новый репозиторий
 	referralRepository := database.NewReferralRepository(pool)
 
 	cryptoPayClient := cryptopay.NewCryptoPayClient(config.CryptoPayUrl(), config.CryptoPayToken())
@@ -63,7 +64,8 @@ func main() {
 		panic(err)
 	}
 
-	paymentService := payment.NewPaymentService(tm, purchaseRepository, remnawaveClient, customerRepository, b, cryptoPayClient, yookasaClient, referralRepository, cache)
+	// Обновляем создание PaymentService, добавляя subscriptionRepository
+	paymentService := payment.NewPaymentService(tm, purchaseRepository, remnawaveClient, customerRepository, subscriptionRepository, b, cryptoPayClient, yookasaClient, referralRepository, cache)
 
 	cronScheduler := setupInvoiceChecker(purchaseRepository, cryptoPayClient, paymentService, yookasaClient)
 	if cronScheduler != nil {
@@ -79,7 +81,8 @@ func main() {
 
 	syncService := sync.NewSyncService(remnawaveClient, customerRepository)
 
-	h := handler.NewHandler(syncService, paymentService, tm, customerRepository, purchaseRepository, cryptoPayClient, yookasaClient, referralRepository, cache)
+	// Обновляем создание Handler, добавляя subscriptionRepository
+	h := handler.NewHandler(syncService, paymentService, tm, customerRepository, purchaseRepository, subscriptionRepository, cryptoPayClient, yookasaClient, referralRepository, cache)
 
 	me, err := b.GetMe(ctx)
 	if err != nil {
@@ -122,6 +125,10 @@ func main() {
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackSell, bot.MatchTypePrefix, h.SellCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackConnect, bot.MatchTypeExact, h.ConnectCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackPayment, bot.MatchTypePrefix, h.PaymentCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
+	
+	// Новые обработчики для множественных подписок
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackMySubscriptions, bot.MatchTypeExact, h.MySubscriptionsCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackDeactivateSubscription, bot.MatchTypePrefix, h.DeactivateSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	
 	// Обработчики рассылки
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackBroadcastMenu, bot.MatchTypeExact, h.BroadcastMenuHandler, isAdminMiddleware)
