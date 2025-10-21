@@ -165,23 +165,15 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 		inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
 	}
 
-	// Кнопка покупки/добавления подписки
-	if activeSubscriptionsCount > 0 {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "add_subscription_button"), CallbackData: CallbackBuy},
-		})
-	} else {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "buy_button"), CallbackData: CallbackBuy},
-		})
-	}
+	// Кнопка покупки/добавления подписки → всегда бесплатная подписка
+	inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
+		{Text: h.translation.GetText(langCode, func() string {
+			if activeSubscriptionsCount > 0 { return "add_subscription_button" }
+			return "buy_button"
+		}()), CallbackData: CallbackTrial},
+	})
 
-	// Кнопка триала (только если нет подписок)
-	if existingCustomer.SubscriptionLink == nil && config.TrialDays() > 0 && activeSubscriptionsCount == 0 {
-		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
-			{Text: h.translation.GetText(langCode, "trial_button"), CallbackData: CallbackTrial},
-		})
-	}
+	// Кнопка триала больше не нужна отдельно (либо можно скрывать)
 
 	if config.GetReferralDays() > 0 {
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
