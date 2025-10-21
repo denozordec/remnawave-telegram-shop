@@ -109,7 +109,7 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	newSubscription := &database.Subscription{
 		CustomerID:       customer.ID,
 		SubscriptionLink: user.SubscriptionUrl,
-		ExpireAt:         *user.ExpireAt,
+		ExpireAt:         user.ExpireAt, // Убрали звездочку
 		IsActive:         true,
 		Name:             subscriptionName,
 		Description:      subscriptionDescription,
@@ -123,7 +123,7 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	// Обновляем данные клиента (оставляем для обратной совместимости)
 	customerFilesToUpdate := map[string]interface{}{
 		"subscription_link": user.SubscriptionUrl,
-		"expire_at":         user.ExpireAt,
+		"expire_at":         user.ExpireAt, // Убрали амперсанд
 	}
 
 	err = s.customerRepository.UpdateFields(ctx, customer.ID, customerFilesToUpdate)
@@ -167,8 +167,8 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	// Создаем бонусную подписку для реферера
 	bonusSubscription := &database.Subscription{
 		CustomerID:       refereeCustomer.ID,
-		SubscriptionLink: refereeUser.GetSubscriptionUrl(),
-		ExpireAt:         *refereeUser.GetExpireAt(),
+		SubscriptionLink: refereeUser.SubscriptionUrl,
+		ExpireAt:         refereeUser.ExpireAt, // Убрали GetExpireAt() и звездочку
 		IsActive:         true,
 		Name:             s.translation.GetText(refereeCustomer.Language, "referral_bonus_subscription"),
 		Description:      s.translation.GetText(refereeCustomer.Language, "referral_bonus_description"),
@@ -180,8 +180,8 @@ func (s PaymentService) ProcessPurchaseById(ctx context.Context, purchaseId int6
 	}
 
 	refereeUserFilesToUpdate := map[string]interface{}{
-		"subscription_link": refereeUser.GetSubscriptionUrl(),
-		"expire_at":         refereeUser.GetExpireAt(),
+		"subscription_link": refereeUser.SubscriptionUrl,
+		"expire_at":         refereeUser.ExpireAt, // Убрали GetExpireAt() и амперсанд
 	}
 	err = s.customerRepository.UpdateFields(ctxReferee, refereeCustomer.ID, refereeUserFilesToUpdate)
 	if err != nil {
@@ -391,8 +391,8 @@ func (s PaymentService) ActivateTrial(ctx context.Context, telegramId int64) (st
 	// Создаем триальную подписку
 	trialSubscription := &database.Subscription{
 		CustomerID:       customer.ID,
-		SubscriptionLink: user.GetSubscriptionUrl(),
-		ExpireAt:         *user.GetExpireAt(),
+		SubscriptionLink: user.SubscriptionUrl,
+		ExpireAt:         user.ExpireAt, // Убрали GetExpireAt() и звездочку
 		IsActive:         true,
 		Name:             s.translation.GetText(customer.Language, "trial_subscription_name"),
 		Description:      s.translation.GetText(customer.Language, "trial_subscription_description"),
@@ -405,8 +405,8 @@ func (s PaymentService) ActivateTrial(ctx context.Context, telegramId int64) (st
 
 	// Обновляем клиента для обратной совместимости
 	customerFilesToUpdate := map[string]interface{}{
-		"subscription_link": user.GetSubscriptionUrl(),
-		"expire_at":         user.GetExpireAt(),
+		"subscription_link": user.SubscriptionUrl,
+		"expire_at":         user.ExpireAt, // Убрали GetExpireAt() и амперсанд
 	}
 
 	err = s.customerRepository.UpdateFields(ctx, customer.ID, customerFilesToUpdate)
@@ -414,7 +414,7 @@ func (s PaymentService) ActivateTrial(ctx context.Context, telegramId int64) (st
 		return "", err
 	}
 
-	return user.GetSubscriptionUrl(), nil
+	return user.SubscriptionUrl, nil
 }
 
 func (s PaymentService) CancelPayment(purchaseId int64) error {
