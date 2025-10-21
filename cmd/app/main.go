@@ -63,6 +63,10 @@ func main() {
 	// Multiple subscriptions
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackMySubscriptions, bot.MatchTypeExact, h.MySubscriptionsCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackDeactivateSubscription, bot.MatchTypePrefix, h.DeactivateSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackRenameSubscription, bot.MatchTypePrefix, h.RenameSubscriptionCallbackHandler, h.CreateCustomerIfNotExistMiddleware)
+
+	// Text handler: сначала проверка переименования, затем остальное
+	b.RegisterHandlerMatchFunc(func(update *models.Update) bool { return update.Message != nil }, h.TextMessageHandler)
 
 	// Broadcast (admins only)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, handler.CallbackBroadcastMenu, bot.MatchTypeExact, h.BroadcastMenuHandler, isAdminMiddleware)
