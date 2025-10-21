@@ -1,0 +1,24 @@
+package handler
+
+import (
+	"context"
+
+	"github.com/go-telegram/bot"
+	"github.com/go-telegram/bot/models"
+)
+
+// ConnectCommandHandler теперь просто переадресует в раздел "Мои подписки"
+func (h Handler) ConnectCommandHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message == nil { return }
+	chatID := update.Message.Chat.ID
+	// соберём минимальный Update с CallbackQuery.Data = my_subscriptions
+	upd := &models.Update{ CallbackQuery: &models.CallbackQuery{ From: *update.Message.From, Message: *update.Message, Data: CallbackMySubscriptions } }
+	h.MySubscriptionsCallbackHandler(ctx, b, upd)
+}
+
+// ConnectCallbackHandler тоже ведёт в "Мои подписки"
+func (h Handler) ConnectCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	// просто проксируем на MySubscriptionsCallbackHandler
+	update.CallbackQuery.Data = CallbackMySubscriptions
+	h.MySubscriptionsCallbackHandler(ctx, b, update)
+}
