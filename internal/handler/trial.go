@@ -12,6 +12,7 @@ import (
 )
 
 func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	// Поддержка и новых, и старых пользователей: всегда создаём бесплатную подписку, если TRIAL_DAYS>0
 	if config.TrialDays() == 0 {
 		return
 	}
@@ -24,11 +25,9 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 		slog.Error("customer not exist", "telegramId", utils.MaskHalfInt64(update.CallbackQuery.From.ID), "error", err)
 		return
 	}
-	if c.SubscriptionLink != nil {
-		return
-	}
+	// Убираем старую блокирующую проверку по customer.SubscriptionLink, чтобы работало при множественных подписках
+	// if c.SubscriptionLink != nil { return }
 	
-	// Сразу активируем пробную подписку
 	callback := update.CallbackQuery.Message.Message
 	ctxWithUsername := context.WithValue(ctx, "username", update.CallbackQuery.From.Username)
 	_, err = h.paymentService.ActivateTrial(ctxWithUsername, update.CallbackQuery.From.ID)
@@ -45,8 +44,6 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 		slog.Error("Error sending trial activation message", err)
 	}
 }
-
-
 
 func (h Handler) createConnectKeyboard(lang string) [][]models.InlineKeyboardButton {
 	var inlineCustomerKeyboard [][]models.InlineKeyboardButton
