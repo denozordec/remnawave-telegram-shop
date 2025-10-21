@@ -14,8 +14,7 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 	svc := &subscriptions.Service{
 		SubsRepo:  h.subscriptionRepository,
 		Customers: h.customerRepository,
-		RW:        h.syncService.RemnawaveClient(),
-		Bot:       b,
+		RW:        h.syncService.GetClient(),
 		Translate: h.translation,
 	}
 	callback := update.CallbackQuery.Message.Message
@@ -34,4 +33,13 @@ func (h Handler) TrialCallbackHandler(ctx context.Context, b *bot.Bot, update *m
 	if err != nil {
 		slog.Error("Error sending trial activation message", err)
 	}
+}
+
+func (h Handler) createConnectKeyboard(lang string) [][]models.InlineKeyboardButton {
+	var inlineCustomerKeyboard [][]models.InlineKeyboardButton
+	inlineCustomerKeyboard = append(inlineCustomerKeyboard, h.resolveConnectButton(lang))
+	inlineCustomerKeyboard = append(inlineCustomerKeyboard, []models.InlineKeyboardButton{
+		{Text: h.translation.GetText(lang, "back_button"), CallbackData: CallbackStart},
+	})
+	return inlineCustomerKeyboard
 }
