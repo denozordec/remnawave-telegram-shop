@@ -161,6 +161,13 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 		Status:            remapi.NewOptUpdateUserRequestDtoStatus(remapi.UpdateUserRequestDtoStatusACTIVE),
 		TrafficLimitBytes: remapi.NewOptInt(trafficLimit),
 	}
+	if config.ExternalSquadUUID() != "" {
+		externalUUID, err := uuid.Parse(config.ExternalSquadUUID())
+		if err != nil {
+			return nil, fmt.Errorf("invalid EXTERNAL_SQUAD_UUID format: %w", err)
+		}
+		userUpdate.ExternalSquadUuid = remapi.NewOptNilUUID(externalUUID)
+	}
 
 	if config.RemnawaveTag() != "" && (existingUser.Tag.IsNull()) {
 		userUpdate.Tag = remapi.NewOptNilString(config.RemnawaveTag())
@@ -214,6 +221,13 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		ExpireAt:             expireAt,
 		TrafficLimitStrategy: remapi.NewOptCreateUserRequestDtoTrafficLimitStrategy(remapi.CreateUserRequestDtoTrafficLimitStrategyMONTH),
 		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
+	}
+	if config.ExternalSquadUUID() != "" {
+		externalUUID, err := uuid.Parse(config.ExternalSquadUUID())
+		if err != nil {
+			return nil, fmt.Errorf("invalid EXTERNAL_SQUAD_UUID format: %w", err)
+		}
+		createUserRequestDto.ExternalSquadUuid = remapi.NewOptNilUUID(externalUUID)
 	}
 	if config.RemnawaveTag() != "" {
 		createUserRequestDto.Tag = remapi.NewOptNilString(config.RemnawaveTag())

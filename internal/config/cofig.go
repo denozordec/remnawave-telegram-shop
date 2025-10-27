@@ -41,6 +41,7 @@ type config struct {
 	isWebAppLinkEnabled                                       bool
 	xApiKey                                                   string
 	daysInMonth                                               int
+	externalSquadUUID                                         string
 }
 
 var conf config
@@ -124,6 +125,10 @@ func Price12() int {
 
 func DaysInMonth() int {
 	return conf.daysInMonth
+}
+
+func ExternalSquadUUID() string {
+	return conf.externalSquadUUID
 }
 
 func Price(month int) int {
@@ -294,6 +299,8 @@ func InitConfig() {
 	conf.defaultLanguage = envStringDefault("DEFAULT_LANGUAGE", "ru")
 
 	conf.daysInMonth = envIntDefault("DAYS_IN_MONTH", 30)
+
+	conf.externalSquadUUID = envStringDefault("EXTERNAL_SQUAD_UUID", "")
 
 	conf.trialTrafficLimit = mustEnvInt("TRIAL_TRAFFIC_LIMIT")
 
