@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -40,8 +41,8 @@ type config struct {
 	tributeWebhookUrl, tributeAPIKey, tributePaymentUrl       string
 	isWebAppLinkEnabled                                       bool
 	xApiKey                                                   string
-	daysInMonth                                               int
-	externalSquadUUID                                         string
+	daysInMonth    int
+	externalSquadUUID uuid.UUID
 }
 
 var conf config
@@ -127,7 +128,7 @@ func DaysInMonth() int {
 	return conf.daysInMonth
 }
 
-func ExternalSquadUUID() string {
+func ExternalSquadUUID() uuid.UUID {
 	return conf.externalSquadUUID
 }
 
@@ -300,7 +301,16 @@ func InitConfig() {
 
 	conf.daysInMonth = envIntDefault("DAYS_IN_MONTH", 30)
 
-	conf.externalSquadUUID = envStringDefault("EXTERNAL_SQUAD_UUID", "")
+	externalSquadUUIDStr := os.Getenv("EXTERNAL_SQUAD_UUID")
+	if externalSquadUUIDStr != "" {
+		parsedUUID, err := uuid.Parse(externalSquadUUIDStr)
+		if err != nil {
+			panic(fmt.Sprintf("invalid EXTERNAL_SQUAD_UUID format: %v", err))
+		}
+		conf.externalSquadUUID = parsedUUID
+	} else {
+		conf.externalSquadUUID = uuid.Nil
+	}
 
 	conf.trialTrafficLimit = mustEnvInt("TRIAL_TRAFFIC_LIMIT")
 
