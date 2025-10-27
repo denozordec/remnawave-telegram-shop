@@ -37,10 +37,11 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 
 ## Version Support
 
-| Remnawave | Bot   |
-|-----------|-------|
-| 1.6       | 2.3.6 |
-| 2.*.*         | 3.*.* |
+| Remnawave     | Bot   |
+|---------------|-------|
+| 1.6           | 2.3.6 |
+| 2.0.0 - 2.1.9 | 3.2.4 |
+| 2.2.*         | 3.2.5 |
 
 ## API
 
@@ -99,6 +100,7 @@ The application requires the following environment variables to be set:
 | `TRIAL_TRAFFIC_LIMIT`    | Maximum allowed traffic in gb for trial subscriptions                                                                                      |     
 | `TRIAL_DAYS`             | Number of days for trial subscriptions. if 0 = disabled.                                                                                   |
 | `SQUAD_UUIDS`            | Comma-separated list of squad UUIDs to assign to users (e.g., "773db654-a8b2-413a-a50b-75c3536238fd,bc979bdd-f1fa-4d94-8a51-38a0f518a2a2") |
+| `EXTERNAL_SQUAD_UUID`    | Single external squad UUID to assign to users during creation and updates (optional, e.g., "773db654-a8b2-413a-a50b-75c3536238fd")        |
 | `TRIBUTE_WEBHOOK_URL`    | Path for webhook handler. Example: /example (https://www.uuidgenerator.net/version4)                                                       |
 | `TRIBUTE_API_KEY`        | Api key, which can be obtained via settings in Tribute app.                                                                                |
 | `TRIBUTE_PAYMENT_URL`    | You payment url for Tribute. (Subscription telegram link)                                                                                  |
@@ -123,10 +125,19 @@ The bot includes a notification system that runs daily at 16:00 UTC to check for
 
 The bot supports selective squad assignment to users:
 
-- Configure specific squad UUIDs in the `SQUADS_UUIDS` environment variable (comma-separated)
+### Internal Squads (SQUAD_UUIDS)
+
+- Configure specific squad UUIDs in the `SQUAD_UUIDS` environment variable (comma-separated)
 - If specified, only squads with matching UUIDs will be assigned to new users
 - If no squads match the specified UUIDs or the variable is empty, all available squads will be assigned
 - This feature allows fine-grained control over which connection methods are available to users
+
+### External Squad (EXTERNAL_SQUAD_UUID)
+
+- Configure a single external squad UUID in the `EXTERNAL_SQUAD_UUID` environment variable
+- When set, this external squad will be included in all user creation and update requests to the Remnawave API
+- The UUID is validated and parsed during application startup; invalid formats will prevent the application from starting
+- Leave empty to disable external squad assignment
 
 ## Plugins and Dependencies
 
