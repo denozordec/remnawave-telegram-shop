@@ -31,7 +31,7 @@ purchase and manage subscriptions through Telegram with multiple payment system 
 - **Subscription Notifications**: The bot automatically sends notifications to users 3 days before their subscription
   expires, helping them avoid service interruption
 - Multi-language support (Russian and English)
-- **Selective Inbound Assignment**: Configure specific inbounds to assign to users via UUID filtering
+- **Selective Squad Assignment**: Configure specific squads to assign to users via UUID filtering
 - All telegram message support HTML formatting https://core.telegram.org/bots/api#html-style
 - Healthcheck - bot checking availability of db, panel.
 
@@ -119,13 +119,13 @@ The bot includes a notification system that runs daily at 16:00 UTC to check for
 - The notification includes the exact expiration date and a convenient button to renew the subscription
 - Notifications are sent in the user's preferred language
 
-## Inbound Configuration
+## Squad Configuration
 
-The bot supports selective inbound assignment to users:
+The bot supports selective squad assignment to users:
 
-- Configure specific inbound UUIDs in the `INBOUND_UUIDS` environment variable (comma-separated)
-- If specified, only inbounds with matching UUIDs will be assigned to new users
-- If no inbounds match the specified UUIDs or the variable is empty, all available inbounds will be assigned
+- Configure specific squad UUIDs in the `SQUADS_UUIDS` environment variable (comma-separated)
+- If specified, only squads with matching UUIDs will be assigned to new users
+- If no squads match the specified UUIDs or the variable is empty, all available squads will be assigned
 - This feature allows fine-grained control over which connection methods are available to users
 
 ## Plugins and Dependencies
