@@ -1,6 +1,6 @@
 module remnawave-tg-shop-bot
 
-go 1.24
+go 1.25.3
 
 require (
 	github.com/Jolymmiles/remnawave-api-go/v2 v2.0.6
