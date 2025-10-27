@@ -30,11 +30,18 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+var (
+	Version   = "dev"
+	Commit    = "none"
+	BuildDate = "unknown"
+)
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
 	config.InitConfig()
+	slog.Info("Application starting", "version", Version, "commit", Commit, "buildDate", BuildDate)
 
 	tm := translation.GetInstance()
 	err := tm.InitTranslations("./translations", config.DefaultLanguage())
@@ -168,6 +175,9 @@ func fullHealthHandler(pool *pgxpool.Pool, rw *remnawave.Client) http.Handler {
 			"db":     "ok",
 			"rw":     "ok",
 			"time":   time.Now().Format(time.RFC3339),
+			"version": Version,
+			"commit": Commit,
+			"buildDate": BuildDate,
 		}
 
 		dbCtx, dbCancel := context.WithTimeout(r.Context(), 5*time.Second)
@@ -191,8 +201,8 @@ func fullHealthHandler(pool *pgxpool.Pool, rw *remnawave.Client) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"%s","db":"%s","remnawave":"%s","time":"%s"}`,
-			status["status"], status["db"], status["rw"], status["time"])
+		fmt.Fprintf(w, `{"status":"%s","db":"%s","remnawave":"%s","time":"%s","version":"%s","commit":"%s","buildDate":"%s"}`,
+			status["status"], status["db"], status["rw"], status["time"], Version, Commit, BuildDate)
 	})
 }
 

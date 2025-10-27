@@ -16,9 +16,12 @@ if [[ -z "${MAJOR_VERSION}" ]]; then
   exit 1
 fi
 
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --build-arg VERSION="${VERSION}" \
+  --build-arg COMMIT="${COMMIT}" \
   -t "${IMAGE_BASE}:${VERSION}" \
   -t "${IMAGE_BASE}:${MAJOR_VERSION}" \
   -t "${IMAGE_BASE}:latest" \
