@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2025-10-31
+
+### Added
+- Application version management via ldflags (`Version`, `Commit`, `BuildDate` variables)
+- Version information logging at application startup
+- Version metadata in healthcheck endpoint response
+- `EXTERNAL_SQUAD_UUID` configuration parameter for user creation and updates
+- Development Docker build script (`build-dev.sh`) for easier local image creation
+- Pagination helper support through remnawave-api-go v2.2.3
+
+### Changed
+- **Breaking:** Terminology refactored from "inbound" to "squad" throughout configuration and API integration
+- Go version updated from 1.24 to 1.25.3
+- Migrated to remnawave-api-go v2.2.3 with enhanced pagination support
+- Build system improved with explicit git commit hash capture in Docker builds
+- Environment variables `.env.sample` updated with new configuration options and documentation
+
+### Fixed
+- User language field preservation during sync patch update
+- False positives in username filtering for better accuracy
+
+### Documentation
+- Added comprehensive documentation for `EXTERNAL_SQUAD_UUID` configuration parameter in README
+- Updated README with new build scripts and version management information
+- Added description of squad-based terminology changes
+
+### Security
+- Improved username validation filtering to reduce false positives while maintaining security
+
 ## [3.2.0] - 2025-01-08
 
 ### Added
