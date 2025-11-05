@@ -94,6 +94,12 @@ func (h Handler) SuspiciousUserFilterMiddleware(next bot.HandlerFunc) bot.Handle
 			return
 		}
 
+		if config.GetWhitelistedTelegramIds()[userID] {
+			slog.Info("whitelisted user allowed", "userId", utils.MaskHalfInt64(userID))
+			next(ctx, b, update)
+			return
+		}
+
 		if utils.IsSuspiciousUser(username, firstName, lastName) {
 			slog.Warn("suspicious user blocked", "userId", utils.MaskHalfInt64(userID))
 			_, err := b.SendMessage(ctx, &bot.SendMessageParams{
