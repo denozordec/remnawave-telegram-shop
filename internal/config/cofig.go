@@ -44,6 +44,7 @@ type config struct {
 	daysInMonth    int
 	externalSquadUUID uuid.UUID
 	blockedTelegramIds map[int64]bool
+	whitelistedTelegramIds map[int64]bool
 }
 
 var conf config
@@ -80,6 +81,10 @@ func SquadUUIDs() map[uuid.UUID]uuid.UUID {
 
 func GetBlockedTelegramIds() map[int64]bool {
 	return conf.blockedTelegramIds
+}
+
+func GetWhitelistedTelegramIds() map[int64]bool {
+	return conf.whitelistedTelegramIds
 }
 
 func TrialTrafficLimit() int {
@@ -423,6 +428,26 @@ func InitConfig() {
 			return blockedMap
 		} else {
 			slog.Info("No blocked telegram IDs specified")
+			return map[int64]bool{}
+		}
+	}()
+
+	conf.whitelistedTelegramIds = func() map[int64]bool {
+		v := os.Getenv("WHITELISTED_TELEGRAM_IDS")
+		if v != "" {
+			ids := strings.Split(v, ",")
+			var whitelistedMap = make(map[int64]bool)
+			for _, idStr := range ids {
+				id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+				if err != nil {
+					panic(fmt.Sprintf("invalid telegram ID in WHITELISTED_TELEGRAM_IDS: %v", err))
+				}
+				whitelistedMap[id] = true
+			}
+			slog.Info("Loaded whitelisted telegram IDs", "count", len(whitelistedMap))
+			return whitelistedMap
+		} else {
+			slog.Info("No whitelisted telegram IDs specified")
 			return map[int64]bool{}
 		}
 	}()
