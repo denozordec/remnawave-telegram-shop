@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2025-11-05
+
+### Added
+- `BLOCKED_TELEGRAM_IDS` environment variable for blocking users by Telegram ID (comma-separated list)
+- User blacklist functionality in suspicious user filter middleware
+
+### Changed
+- SuspiciousUserFilterMiddleware now checks blacklist before suspicious name pattern validation for better security control
+
+### Documentation
+- Added `BLOCKED_TELEGRAM_IDS` to environment variables table in README
+- Updated `.env.sample` with blocked telegram IDs configuration example
+
 ## [3.3.0] - 2025-10-31
 
 ### Added
