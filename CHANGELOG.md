@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.3.2] - 2025-11-05
 
+### Added
+- `WHITELISTED_TELEGRAM_IDS` environment variable to whitelist users by Telegram ID (comma-separated list)
+- Whitelisted users bypass all suspicious user checks
+
 ### Changed
 - Improved suspicious user detection: now checks for dangerous keyword combinations instead of individual keywords
   - Allows legitimate project accounts like @CompanySupportAdmin to pass validation
