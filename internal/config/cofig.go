@@ -41,10 +41,11 @@ type config struct {
 	tributeWebhookUrl, tributeAPIKey, tributePaymentUrl       string
 	isWebAppLinkEnabled                                       bool
 	xApiKey                                                   string
-	daysInMonth    int
-	externalSquadUUID uuid.UUID
-	blockedTelegramIds map[int64]bool
-	whitelistedTelegramIds map[int64]bool
+	daysInMonth                                               int
+	externalSquadUUID                                         uuid.UUID
+	blockedTelegramIds                                        map[int64]bool
+	whitelistedTelegramIds                                    map[int64]bool
+	requirePaidPurchaseForStars                               bool
 }
 
 var conf config
@@ -223,6 +224,10 @@ func IsTelegramStarsEnabled() bool {
 	return conf.isTelegramStarsEnabled
 }
 
+func RequirePaidPurchaseForStars() bool {
+	return conf.requirePaidPurchaseForStars
+}
+
 func GetAdminTelegramId() int64 {
 	return conf.adminTelegramId
 }
@@ -343,6 +348,8 @@ func InitConfig() {
 		conf.starsPrice12 = envIntDefault("STARS_PRICE_12", conf.price12)
 
 	}
+
+	conf.requirePaidPurchaseForStars = envBool("REQUIRE_PAID_PURCHASE_FOR_STARS")
 
 	conf.remnawaveUrl = mustEnv("REMNAWAVE_URL")
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.3] - 2025-11-07
+
+### Added
+- `REQUIRE_PAID_PURCHASE_FOR_STARS` environment variable to gate-keep Telegram Stars payment method
+- Telegram Stars payment option now requires at least one successful cryptocurrency or card payment to be available
+- New database repository method `FindSuccessfulPaidPurchaseByCustomer()` to check user payment history
+
+### Changed
+- Telegram Stars button is now conditionally displayed in payment method selection based on user's payment history
+- Users without prior crypto or card payments will only see available payment methods
+
+### Security
+- Enhanced payment flow to prevent Telegram Stars abuse by new unverified users
+
 ## [3.3.2] - 2025-11-05
 
 ### Added

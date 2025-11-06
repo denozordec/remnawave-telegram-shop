@@ -91,6 +91,7 @@ The application requires the following environment variables to be set:
 | `YOOKASA_EMAIL`          | Email address associated with YooKassa account                                                                                             |
 | `TRAFFIC_LIMIT`          | Maximum allowed traffic in gb (0 to set unlimited)                                                                                         |
 | `TELEGRAM_STARS_ENABLED` | Enable/disable Telegram Stars payment method (true/false)                                                                                  |
+| `REQUIRE_PAID_PURCHASE_FOR_STARS` | Require successful cryptocurrency or card payment before allowing Telegram Stars (true/false). Default: false |
 | `SERVER_STATUS_URL`      | URL to server status page (optional) - if not set, button will not be displayed                                                            |
 | `SUPPORT_URL`            | URL to support chat or page (optional) - if not set, button will not be displayed                                                          |
 | `FEEDBACK_URL`           | URL to feedback/reviews page (optional) - if not set, button will not be displayed                                                         |
