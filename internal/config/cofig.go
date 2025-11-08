@@ -46,6 +46,8 @@ type config struct {
 	blockedTelegramIds                                        map[int64]bool
 	whitelistedTelegramIds                                    map[int64]bool
 	requirePaidPurchaseForStars                               bool
+	trialInternalSquads                                       map[uuid.UUID]uuid.UUID
+	trialExternalSquadUUID                                    uuid.UUID
 }
 
 var conf config
@@ -86,6 +88,20 @@ func GetBlockedTelegramIds() map[int64]bool {
 
 func GetWhitelistedTelegramIds() map[int64]bool {
 	return conf.whitelistedTelegramIds
+}
+
+func TrialInternalSquads() map[uuid.UUID]uuid.UUID {
+	if conf.trialInternalSquads != nil && len(conf.trialInternalSquads) > 0 {
+		return conf.trialInternalSquads
+	}
+	return conf.squadUUIDs
+}
+
+func TrialExternalSquadUUID() uuid.UUID {
+	if conf.trialExternalSquadUUID != uuid.Nil {
+		return conf.trialExternalSquadUUID
+	}
+	return conf.externalSquadUUID
 }
 
 func TrialTrafficLimit() int {
@@ -458,4 +474,37 @@ func InitConfig() {
 			return map[int64]bool{}
 		}
 	}()
+
+	conf.trialInternalSquads = func() map[uuid.UUID]uuid.UUID {
+		v := os.Getenv("TRIAL_INTERNAL_SQUADS")
+		if v != "" {
+			uuids := strings.Split(v, ",")
+			var trialSquadsMap = make(map[uuid.UUID]uuid.UUID)
+			for _, value := range uuids {
+				parsedUUID, err := uuid.Parse(strings.TrimSpace(value))
+				if err != nil {
+					panic(fmt.Sprintf("invalid UUID in TRIAL_INTERNAL_SQUADS: %v", err))
+				}
+				trialSquadsMap[parsedUUID] = parsedUUID
+			}
+			slog.Info("Loaded trial internal squad UUIDs", "uuids", uuids)
+			return trialSquadsMap
+		} else {
+			slog.Info("No trial internal squads specified, will use regular SQUAD_UUIDS for trial users")
+			return map[uuid.UUID]uuid.UUID{}
+		}
+	}()
+
+	trialExternalSquadUUIDStr := os.Getenv("TRIAL_EXTERNAL_SQUAD_UUID")
+	if trialExternalSquadUUIDStr != "" {
+		parsedUUID, err := uuid.Parse(trialExternalSquadUUIDStr)
+		if err != nil {
+			panic(fmt.Sprintf("invalid TRIAL_EXTERNAL_SQUAD_UUID format: %v", err))
+		}
+		conf.trialExternalSquadUUID = parsedUUID
+		slog.Info("Loaded trial external squad UUID", "uuid", trialExternalSquadUUIDStr)
+	} else {
+		conf.trialExternalSquadUUID = uuid.Nil
+		slog.Info("No trial external squad specified, will use regular EXTERNAL_SQUAD_UUID for trial users")
+	}
 }
