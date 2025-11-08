@@ -33,6 +33,7 @@ type config struct {
 	isTelegramStarsEnabled                                    bool
 	adminTelegramId                                           int64
 	trialDays                                                 int
+	trialRemnawaveTag                                         string
 	squadUUIDs                                                map[uuid.UUID]uuid.UUID
 	referralDays                                              int
 	miniApp                                                   string
@@ -53,6 +54,13 @@ type config struct {
 var conf config
 
 func RemnawaveTag() string {
+	return conf.remnawaveTag
+}
+
+func TrialRemnawaveTag() string {
+	if conf.trialRemnawaveTag != "" {
+		return conf.trialRemnawaveTag
+	}
 	return conf.remnawaveTag
 }
 
@@ -327,6 +335,8 @@ func InitConfig() {
 	conf.miniApp = envStringDefault("MINI_APP_URL", "")
 
 	conf.remnawaveTag = envStringDefault("REMNAWAVE_TAG", "")
+
+	conf.trialRemnawaveTag = envStringDefault("TRIAL_REMNAWAVE_TAG", "")
 
 	conf.defaultLanguage = envStringDefault("DEFAULT_LANGUAGE", "ru")
 

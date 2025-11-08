@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-11-08
+
+### Added
+- `TRIAL_REMNAWAVE_TAG` environment variable to assign different tags to trial users in Remnawave
+- Trial users can now be tagged separately from paying customers for better tracking and resource management
+
+### Changed
+- User tag assignment now always applies trial-specific or regular tags based on user type
+- Trial users get assigned `TRIAL_REMNAWAVE_TAG` (or fallback to `REMNAWAVE_TAG`) when created or updated
+- Regular paying users continue to receive `REMNAWAVE_TAG` on all operations
+
+### Documentation
+- Added `TRIAL_REMNAWAVE_TAG` to environment variables table in README
+- Updated `.env.sample` with trial tag configuration example
 ## [3.4.0] - 2025-11-08
 
 ### Added

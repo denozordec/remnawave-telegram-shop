@@ -63,6 +63,7 @@ The application requires the following environment variables to be set:
 | `DAYS_IN_MONTH`          | Days in month                                                                                                                              |
 | `DEFAULT_LANGUAGE`       | Default language for bot messages (en or ru). Default: ru                                                                                   |
 | `REMNAWAVE_TAG`          | Tag in remnawave                                                                                                                           |
+| `TRIAL_REMNAWAVE_TAG`    | Tag to assign to trial users in Remnawave (optional, if not set, regular REMNAWAVE_TAG will be used)                                        |
 | `HEALTH_CHECK_PORT`      | Server port                                                                                                                                |
 | `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                           |
 | `X_API_KEY`              | https://remna.st/docs/security/tinyauth-for-nginx#issuing-api-keys                                                                         |
