@@ -103,6 +103,8 @@ The application requires the following environment variables to be set:
 | `WHITELISTED_TELEGRAM_IDS` | Comma-separated list of Telegram IDs that bypass all suspicious user checks (e.g., "111111111,222222222,333333333")                      |
 | `TRIAL_TRAFFIC_LIMIT`    | Maximum allowed traffic in gb for trial subscriptions                                                                                      |     
 | `TRIAL_DAYS`             | Number of days for trial subscriptions. if 0 = disabled.                                                                                   |
+| `TRIAL_INTERNAL_SQUADS`  | Comma-separated list of squad UUIDs to assign to trial users (optional, if not set, regular SQUAD_UUIDS will be used)                      |
+| `TRIAL_EXTERNAL_SQUAD_UUID` | Single external squad UUID to assign to trial users during creation and updates (optional, if not set, regular EXTERNAL_SQUAD_UUID will be used) |
 | `SQUAD_UUIDS`            | Comma-separated list of squad UUIDs to assign to users (e.g., "773db654-a8b2-413a-a50b-75c3536238fd,bc979bdd-f1fa-4d94-8a51-38a0f518a2a2") |
 | `EXTERNAL_SQUAD_UUID`    | Single external squad UUID to assign to users during creation and updates (optional, e.g., "773db654-a8b2-413a-a50b-75c3536238fd")        |
 | `TRIBUTE_WEBHOOK_URL`    | Path for webhook handler. Example: /example (https://www.uuidgenerator.net/version4)                                                       |
@@ -142,6 +144,26 @@ The bot supports selective squad assignment to users:
 - When set, this external squad will be included in all user creation and update requests to the Remnawave API
 - The UUID is validated and parsed during application startup; invalid formats will prevent the application from starting
 - Leave empty to disable external squad assignment
+
+### Trial Squad Configuration (TRIAL_INTERNAL_SQUADS and TRIAL_EXTERNAL_SQUAD_UUID)
+
+Trial users can be assigned to different squads than regular paying users:
+
+#### Trial Internal Squads (TRIAL_INTERNAL_SQUADS)
+
+- Configure specific squad UUIDs for trial users in the `TRIAL_INTERNAL_SQUADS` environment variable (comma-separated)
+- If specified, only trial-specific squads will be assigned to users activating trial subscriptions
+- If empty or not set, trial users will be assigned to regular squads defined in `SQUAD_UUIDS` (fallback behavior)
+- Example: `TRIAL_INTERNAL_SQUADS=773db654-a8b2-413a-a50b-75c3536238fd,bc979bdd-f1fa-4d94-8a51-38a0f518a2a2`
+
+#### Trial External Squad (TRIAL_EXTERNAL_SQUAD_UUID)
+
+- Configure a single external squad UUID for trial users in the `TRIAL_EXTERNAL_SQUAD_UUID` environment variable
+- If specified, this external squad will be included in all trial user creation and update requests
+- If empty or not set, trial users will use the regular squad defined in `EXTERNAL_SQUAD_UUID` (fallback behavior)
+- Example: `TRIAL_EXTERNAL_SQUAD_UUID=773db654-a8b2-413a-a50b-75c3536238fd`
+
+**Use Case:** Isolate trial users in separate squad(s) for monitoring, resource allocation, or specific feature testing
 
 ## Plugins and Dependencies
 

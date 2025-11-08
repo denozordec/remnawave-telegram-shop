@@ -161,6 +161,7 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 		Status:            remapi.NewOptUpdateUserRequestDtoStatus(remapi.UpdateUserRequestDtoStatusACTIVE),
 		TrafficLimitBytes: remapi.NewOptInt(trafficLimit),
 	}
+	
 	if config.ExternalSquadUUID() != uuid.Nil {
 		userUpdate.ExternalSquadUuid = remapi.NewOptNilUUID(config.ExternalSquadUUID())
 	}
@@ -200,10 +201,16 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 	}
 
 	squads := resp.(*remapi.GetInternalSquadsResponseDto).GetResponse()
-	squadId := make([]uuid.UUID, 0, len(config.SquadUUIDs()))
+	
+	selectedSquads := config.SquadUUIDs()
+	if isTrialUser {
+		selectedSquads = config.TrialInternalSquads()
+	}
+	
+	squadId := make([]uuid.UUID, 0, len(selectedSquads))
 	for _, squad := range squads.GetInternalSquads() {
-		if config.SquadUUIDs() != nil && len(config.SquadUUIDs()) > 0 {
-			if _, isExist := config.SquadUUIDs()[squad.UUID]; !isExist {
+		if selectedSquads != nil && len(selectedSquads) > 0 {
+			if _, isExist := selectedSquads[squad.UUID]; !isExist {
 				continue
 			} else {
 				squadId = append(squadId, squad.UUID)
@@ -211,6 +218,11 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		} else {
 			squadId = append(squadId, squad.UUID)
 		}
+	}
+
+	externalSquad := config.ExternalSquadUUID()
+	if isTrialUser {
+		externalSquad = config.TrialExternalSquadUUID()
 	}
 
 	createUserRequestDto := remapi.CreateUserRequestDto{
@@ -222,8 +234,8 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		TrafficLimitStrategy: remapi.NewOptCreateUserRequestDtoTrafficLimitStrategy(remapi.CreateUserRequestDtoTrafficLimitStrategyMONTH),
 		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
 	}
-	if config.ExternalSquadUUID() != uuid.Nil {
-		createUserRequestDto.ExternalSquadUuid = remapi.NewOptNilUUID(config.ExternalSquadUUID())
+	if externalSquad != uuid.Nil {
+		createUserRequestDto.ExternalSquadUuid = remapi.NewOptNilUUID(externalSquad)
 	}
 	tag := config.RemnawaveTag()
 	if isTrialUser {

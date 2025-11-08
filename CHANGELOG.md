@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 - Added `TRIAL_REMNAWAVE_TAG` to environment variables table in README
 - Updated `.env.sample` with trial tag configuration example
+## [3.4.0] - 2025-11-08
+
+### Added
+- `TRIAL_INTERNAL_SQUADS` environment variable for configuring separate internal squads for trial users
+- `TRIAL_EXTERNAL_SQUAD_UUID` environment variable for configuring separate external squad for trial users
+- Trial user squad configuration with automatic fallback to regular squad settings when trial-specific settings are not provided
+- Support for isolated squad assignment of trial users from regular paid users
+
+### Changed
+- Trial user creation now supports isolated squad assignment from regular paid users
+- `CreateOrUpdateUser()`, `createUser()`, and `updateUser()` methods now accept `isTrialUser` parameter to determine squad selection
+- Payment service now passes trial user flag when activating trial subscriptions
+
+### Documentation
+- Added comprehensive Trial Squad Configuration section in README explaining use cases and behavior
+- Updated environment variables table with new trial squad configuration parameters
+- Added examples for trial squad UUID configuration
 
 ## [3.3.3] - 2025-11-07
 
