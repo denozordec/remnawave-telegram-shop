@@ -118,14 +118,14 @@ func (r *Client) DecreaseSubscription(ctx context.Context, telegramId int64, tra
 		if existingUser == nil {
 			existingUser = &v.GetResponse()[0]
 		}
-		updatedUser, err := r.updateUser(ctx, existingUser, trafficLimit, days)
+		updatedUser, err := r.updateUser(ctx, existingUser, trafficLimit, days, false)
 		return &updatedUser.ExpireAt, err
 	default:
 		return nil, errors.New("unknown response type")
 	}
 }
 
-func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int) (*remapi.UserResponseResponse, error) {
+func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
 	resp, err := r.client.UsersControllerGetUserByTelegramId(ctx, remapi.UsersControllerGetUserByTelegramIdParams{TelegramId: strconv.FormatInt(telegramId, 10)})
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, teleg
 	switch v := resp.(type) {
 
 	case *remapi.UsersControllerGetUserByTelegramIdNotFound:
-		return r.createUser(ctx, customerId, telegramId, trafficLimit, days)
+		return r.createUser(ctx, customerId, telegramId, trafficLimit, days, isTrialUser)
 	case *remapi.UsersResponse:
 		var existingUser *remapi.UsersResponseResponseItem
 		for _, panelUser := range v.GetResponse() {
@@ -145,13 +145,13 @@ func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, teleg
 		if existingUser == nil {
 			existingUser = &v.GetResponse()[0]
 		}
-		return r.updateUser(ctx, existingUser, trafficLimit, days)
+		return r.updateUser(ctx, existingUser, trafficLimit, days, isTrialUser)
 	default:
 		return nil, errors.New("unknown response type")
 	}
 }
 
-func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersResponseResponseItem, trafficLimit int, days int) (*remapi.UserResponseResponse, error) {
+func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersResponseResponseItem, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
 
 	newExpire := getNewExpire(days, existingUser.ExpireAt)
 
@@ -165,8 +165,12 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 		userUpdate.ExternalSquadUuid = remapi.NewOptNilUUID(config.ExternalSquadUUID())
 	}
 
-	if config.RemnawaveTag() != "" && (existingUser.Tag.IsNull()) {
-		userUpdate.Tag = remapi.NewOptNilString(config.RemnawaveTag())
+	tag := config.RemnawaveTag()
+	if isTrialUser {
+		tag = config.TrialRemnawaveTag()
+	}
+	if tag != "" {
+		userUpdate.Tag = remapi.NewOptNilString(tag)
 	}
 
 	var username string
@@ -186,7 +190,7 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 	return &updateUser.(*remapi.UserResponse).Response, nil
 }
 
-func (r *Client) createUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int) (*remapi.UserResponseResponse, error) {
+func (r *Client) createUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
 	expireAt := time.Now().UTC().AddDate(0, 0, days)
 	username := generateUsername(customerId, telegramId)
 
@@ -221,8 +225,12 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 	if config.ExternalSquadUUID() != uuid.Nil {
 		createUserRequestDto.ExternalSquadUuid = remapi.NewOptNilUUID(config.ExternalSquadUUID())
 	}
-	if config.RemnawaveTag() != "" {
-		createUserRequestDto.Tag = remapi.NewOptNilString(config.RemnawaveTag())
+	tag := config.RemnawaveTag()
+	if isTrialUser {
+		tag = config.TrialRemnawaveTag()
+	}
+	if tag != "" {
+		createUserRequestDto.Tag = remapi.NewOptNilString(tag)
 	}
 
 	var tgUsername string
