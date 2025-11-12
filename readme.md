@@ -68,7 +68,6 @@ The application requires the following environment variables to be set:
 | `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                           |
 | `X_API_KEY`              | https://remna.st/docs/security/tinyauth-for-nginx#issuing-api-keys                                                                         |
 | `MINI_APP_URL`           | tg WEB APP URL. if empty not be used.                                                                                                      |
-| `PRICE_12`               | Price for 12 month                                                                                                                         |
 | `STARS_PRICE_1`          | Price in Stars for 1 month                                                                                                                 
 | `STARS_PRICE_3`          | Price in Stars for 3 month                                                                                                                 
 | `STARS_PRICE_6`          | Price in Stars for 6 month                                                                                                                 
