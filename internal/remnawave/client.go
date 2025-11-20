@@ -22,34 +22,34 @@ type Client struct {
 
 type headerTransport struct {
 	base    http.RoundTripper
-	xApiKey string
 	local   bool
+	headers map[string]string
 }
 
 func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r := req.Clone(req.Context())
-
-	if t.xApiKey != "" {
-		r.Header.Set("X-Api-Key", t.xApiKey)
-	}
 
 	if t.local {
 		r.Header.Set("x-forwarded-for", "127.0.0.1")
 		r.Header.Set("x-forwarded-proto", "https")
 	}
 
+	for key, value := range t.headers {
+		r.Header.Set(key, value)
+	}
+
 	return t.base.RoundTrip(r)
 }
 
 func NewClient(baseURL, token, mode string) *Client {
-	xApiKey := config.GetXApiKey()
 	local := mode == "local"
+	headers := config.RemnawaveHeaders()
 
 	client := &http.Client{
 		Transport: &headerTransport{
 			base:    http.DefaultTransport,
-			xApiKey: xApiKey,
 			local:   local,
+			headers: headers,
 		},
 	}
 

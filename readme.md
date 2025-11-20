@@ -67,7 +67,7 @@ The application requires the following environment variables to be set:
 | `TRIAL_REMNAWAVE_TAG`    | Tag to assign to trial users in Remnawave (optional, if not set, regular REMNAWAVE_TAG will be used)                                        |
 | `HEALTH_CHECK_PORT`      | Server port                                                                                                                                |
 | `IS_WEB_APP_LINK`        | If true, then sublink will be showed as webapp..                                                                                           |
-| `X_API_KEY`              | https://remna.st/docs/security/tinyauth-for-nginx#issuing-api-keys                                                                         |
+| `REMNAWAVE_HEADERS`      | Additional headers for remnawave requests (format: key1:value1;key2:value2). Example: X-Api-Key:your_key;X-Custom:value (optional)       |
 | `MINI_APP_URL`           | tg WEB APP URL. if empty not be used.                                                                                                      |
 | `STARS_PRICE_1`          | Price in Stars for 1 month                                                                                                                 
 | `STARS_PRICE_3`          | Price in Stars for 3 month                                                                                                                 
