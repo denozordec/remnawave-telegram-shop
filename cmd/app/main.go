@@ -171,12 +171,12 @@ func main() {
 func fullHealthHandler(pool *pgxpool.Pool, rw *remnawave.Client) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		status := map[string]string{
-			"status": "ok",
-			"db":     "ok",
-			"rw":     "ok",
-			"time":   time.Now().Format(time.RFC3339),
-			"version": Version,
-			"commit": Commit,
+			"status":    "ok",
+			"db":        "ok",
+			"rw":        "ok",
+			"time":      time.Now().Format(time.RFC3339),
+			"version":   Version,
+			"commit":    Commit,
 			"buildDate": BuildDate,
 		}
 
@@ -326,7 +326,7 @@ func checkYookasaInvoice(
 		ctxWithValue := context.WithValue(ctx, "username", invoice.Metadata["username"])
 		err = paymentService.ProcessPurchaseById(ctxWithValue, int64(purchaseId))
 		if err != nil {
-			slog.Error("Error processing invoice", "invoiceId", invoice.ID, "purchaseId", purchaseId, err)
+			slog.Error("Error processing invoice", "invoiceId", invoice.ID, "purchaseId", purchaseId, "error", err)
 		} else {
 			slog.Info("Invoice processed", "invoiceId", invoice.ID, "purchaseId", purchaseId)
 		}

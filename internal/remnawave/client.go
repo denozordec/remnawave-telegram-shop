@@ -118,7 +118,7 @@ func (r *Client) DecreaseSubscription(ctx context.Context, telegramId int64, tra
 		if existingUser == nil {
 			existingUser = &v.GetResponse()[0]
 		}
-		updatedUser, err := r.updateUser(ctx, existingUser, trafficLimit, days, false)
+		updatedUser, err := r.updateUser(ctx, existingUser, trafficLimit, days)
 		return &updatedUser.ExpireAt, err
 	default:
 		return nil, errors.New("unknown response type")
@@ -145,31 +145,52 @@ func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, teleg
 		if existingUser == nil {
 			existingUser = &v.GetResponse()[0]
 		}
-		return r.updateUser(ctx, existingUser, trafficLimit, days, isTrialUser)
+		return r.updateUser(ctx, existingUser, trafficLimit, days)
 	default:
 		return nil, errors.New("unknown response type")
 	}
 }
 
-func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersResponseResponseItem, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
+func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersResponseResponseItem, trafficLimit int, days int) (*remapi.UserResponseResponse, error) {
 
 	newExpire := getNewExpire(days, existingUser.ExpireAt)
 
-	userUpdate := &remapi.UpdateUserRequestDto{
-		UUID:              remapi.NewOptUUID(existingUser.UUID),
-		ExpireAt:          remapi.NewOptDateTime(newExpire),
-		Status:            remapi.NewOptUpdateUserRequestDtoStatus(remapi.UpdateUserRequestDtoStatusACTIVE),
-		TrafficLimitBytes: remapi.NewOptInt(trafficLimit),
+	resp, err := r.client.InternalSquadControllerGetInternalSquads(ctx)
+	if err != nil {
+		return nil, err
 	}
-	
-	if config.ExternalSquadUUID() != uuid.Nil {
-		userUpdate.ExternalSquadUuid = remapi.NewOptNilUUID(config.ExternalSquadUUID())
+
+	squads := resp.(*remapi.GetInternalSquadsResponseDto).GetResponse()
+
+	selectedSquads := config.SquadUUIDs()
+
+	squadId := make([]uuid.UUID, 0, len(selectedSquads))
+	for _, squad := range squads.GetInternalSquads() {
+		if selectedSquads != nil && len(selectedSquads) > 0 {
+			if _, isExist := selectedSquads[squad.UUID]; !isExist {
+				continue
+			} else {
+				squadId = append(squadId, squad.UUID)
+			}
+		} else {
+			squadId = append(squadId, squad.UUID)
+		}
+	}
+
+	userUpdate := &remapi.UpdateUserRequestDto{
+		UUID:                 remapi.NewOptUUID(existingUser.UUID),
+		ExpireAt:             remapi.NewOptDateTime(newExpire),
+		Status:               remapi.NewOptUpdateUserRequestDtoStatus(remapi.UpdateUserRequestDtoStatusACTIVE),
+		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
+		ActiveInternalSquads: squadId,
+	}
+
+	externalSquad := config.ExternalSquadUUID()
+	if externalSquad != uuid.Nil {
+		userUpdate.ExternalSquadUuid = remapi.NewOptNilUUID(externalSquad)
 	}
 
 	tag := config.RemnawaveTag()
-	if isTrialUser {
-		tag = config.TrialRemnawaveTag()
-	}
 	if tag != "" {
 		userUpdate.Tag = remapi.NewOptNilString(tag)
 	}
@@ -186,6 +207,10 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 	if err != nil {
 		return nil, err
 	}
+	if value, ok := updateUser.(*remapi.UsersControllerUpdateUserInternalServerError); ok {
+		return nil, errors.New("error while updating user. message: " + value.GetMessage().Value + ". code: " + value.GetErrorCode().Value)
+	}
+
 	tgid, _ := existingUser.TelegramId.Get()
 	slog.Info("updated user", "telegramId", utils.MaskHalf(strconv.Itoa(tgid)), "username", utils.MaskHalf(username), "days", days)
 	return &updateUser.(*remapi.UserResponse).Response, nil
@@ -201,12 +226,12 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 	}
 
 	squads := resp.(*remapi.GetInternalSquadsResponseDto).GetResponse()
-	
+
 	selectedSquads := config.SquadUUIDs()
 	if isTrialUser {
 		selectedSquads = config.TrialInternalSquads()
 	}
-	
+
 	squadId := make([]uuid.UUID, 0, len(selectedSquads))
 	for _, squad := range squads.GetInternalSquads() {
 		if selectedSquads != nil && len(selectedSquads) > 0 {
