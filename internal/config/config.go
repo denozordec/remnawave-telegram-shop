@@ -49,6 +49,8 @@ type config struct {
 	trialInternalSquads                                       map[uuid.UUID]uuid.UUID
 	trialExternalSquadUUID                                    uuid.UUID
 	remnawaveHeaders                                          map[string]string
+	trialTrafficLimitResetStrategy                            string
+	trafficLimitResetStrategy                                 string
 }
 
 var conf config
@@ -268,6 +270,14 @@ func RemnawaveHeaders() map[string]string {
 	return conf.remnawaveHeaders
 }
 
+func TrialTrafficLimitResetStrategy() string {
+	return conf.trialTrafficLimitResetStrategy
+}
+
+func TrafficLimitResetStrategy() string {
+	return conf.trafficLimitResetStrategy
+}
+
 const bytesInGigabyte = 1073741824
 
 func mustEnv(key string) string {
@@ -335,6 +345,9 @@ func InitConfig() {
 	conf.remnawaveTag = envStringDefault("REMNAWAVE_TAG", "")
 
 	conf.trialRemnawaveTag = envStringDefault("TRIAL_REMNAWAVE_TAG", "")
+
+	conf.trialTrafficLimitResetStrategy = envStringDefault("TRIAL_TRAFFIC_LIMIT_RESET_STRATEGY", "MONTH")
+	conf.trafficLimitResetStrategy = envStringDefault("TRAFFIC_LIMIT_RESET_STRATEGY", "MONTH")
 
 	conf.defaultLanguage = envStringDefault("DEFAULT_LANGUAGE", "ru")
 

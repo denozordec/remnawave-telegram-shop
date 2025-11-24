@@ -183,6 +183,7 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 		Status:               remapi.NewOptUpdateUserRequestDtoStatus(remapi.UpdateUserRequestDtoStatusACTIVE),
 		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
 		ActiveInternalSquads: squadId,
+		TrafficLimitStrategy: remapi.NewOptUpdateUserRequestDtoTrafficLimitStrategy(getUpdateStrategy(config.TrafficLimitResetStrategy())),
 	}
 
 	externalSquad := config.ExternalSquadUUID()
@@ -250,13 +251,18 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		externalSquad = config.TrialExternalSquadUUID()
 	}
 
+	strategy := config.TrafficLimitResetStrategy()
+	if isTrialUser {
+		strategy = config.TrialTrafficLimitResetStrategy()
+	}
+
 	createUserRequestDto := remapi.CreateUserRequestDto{
 		Username:             username,
 		ActiveInternalSquads: squadId,
 		Status:               remapi.NewOptCreateUserRequestDtoStatus(remapi.CreateUserRequestDtoStatusACTIVE),
 		TelegramId:           remapi.NewOptNilInt(int(telegramId)),
 		ExpireAt:             expireAt,
-		TrafficLimitStrategy: remapi.NewOptCreateUserRequestDtoTrafficLimitStrategy(remapi.CreateUserRequestDtoTrafficLimitStrategyMONTH),
+		TrafficLimitStrategy: remapi.NewOptCreateUserRequestDtoTrafficLimitStrategy(getCreateStrategy(strategy)),
 		TrafficLimitBytes:    remapi.NewOptInt(trafficLimit),
 	}
 	if externalSquad != uuid.Nil {
@@ -303,4 +309,30 @@ func getNewExpire(daysToAdd int, currentExpire time.Time) time.Time {
 	}
 
 	return currentExpire.AddDate(0, 0, daysToAdd)
+}
+
+func getCreateStrategy(s string) remapi.CreateUserRequestDtoTrafficLimitStrategy {
+	switch s {
+	case "DAY":
+		return remapi.CreateUserRequestDtoTrafficLimitStrategyDAY
+	case "WEEK":
+		return remapi.CreateUserRequestDtoTrafficLimitStrategyWEEK
+	case "NO_RESET":
+		return remapi.CreateUserRequestDtoTrafficLimitStrategyNORESET
+	default:
+		return remapi.CreateUserRequestDtoTrafficLimitStrategyMONTH
+	}
+}
+
+func getUpdateStrategy(s string) remapi.UpdateUserRequestDtoTrafficLimitStrategy {
+	switch s {
+	case "DAY":
+		return remapi.UpdateUserRequestDtoTrafficLimitStrategyDAY
+	case "WEEK":
+		return remapi.UpdateUserRequestDtoTrafficLimitStrategyWEEK
+	case "NO_RESET":
+		return remapi.UpdateUserRequestDtoTrafficLimitStrategyNORESET
+	default:
+		return remapi.UpdateUserRequestDtoTrafficLimitStrategyMONTH
+	}
 }
