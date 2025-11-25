@@ -298,13 +298,14 @@ func generateUsername(customerId int64, telegramId int64) string {
 
 func getNewExpire(daysToAdd int, currentExpire time.Time) time.Time {
 	if daysToAdd <= 0 {
-		return time.Now().UTC().AddDate(0, 0, 1)
-	}
-	if currentExpire.IsZero() {
-		return time.Now().UTC().AddDate(0, 0, daysToAdd)
+		if currentExpire.AddDate(0, 0, daysToAdd).Before(time.Now()) {
+			return time.Now().UTC().AddDate(0, 0, 1)
+		} else {
+			return currentExpire.AddDate(0, 0, daysToAdd)
+		}
 	}
 
-	if currentExpire.Before(time.Now().UTC()) {
+	if currentExpire.Before(time.Now().UTC()) || currentExpire.IsZero() {
 		return time.Now().UTC().AddDate(0, 0, daysToAdd)
 	}
 
