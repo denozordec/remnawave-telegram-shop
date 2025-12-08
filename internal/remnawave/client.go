@@ -61,25 +61,16 @@ func NewClient(baseURL, token, mode string) *Client {
 }
 
 func (r *Client) Ping(ctx context.Context) error {
-	params := remapi.UsersControllerGetAllUsersParams{
-		Size:  remapi.NewOptFloat64(1),
-		Start: remapi.NewOptFloat64(0),
-	}
-	_, err := r.client.UsersControllerGetAllUsers(ctx, params)
+	_, err := r.client.Users().GetAllUsers(ctx, 1, 0)
 	return err
 }
 
-func (r *Client) GetUsers(ctx context.Context) (*[]remapi.GetAllUsersResponseDtoResponseUsersItem, error) {
+func (r *Client) GetUsers(ctx context.Context) (*[]remapi.User, error) {
 	pager := remapi.NewPaginationHelper(250)
-	users := make([]remapi.GetAllUsersResponseDtoResponseUsersItem, 0)
+	users := make([]remapi.User, 0)
 
 	for {
-		params := remapi.UsersControllerGetAllUsersParams{
-			Start: remapi.NewOptFloat64(float64(pager.Offset)),
-			Size:  remapi.NewOptFloat64(float64(pager.Limit)),
-		}
-
-		resp, err := r.client.Users().GetAllUsers(ctx, params)
+		resp, err := r.client.Users().GetAllUsers(ctx, float64(pager.Limit), float64(pager.Offset))
 		if err != nil {
 			return nil, err
 		}
@@ -100,16 +91,16 @@ func (r *Client) GetUsers(ctx context.Context) (*[]remapi.GetAllUsersResponseDto
 }
 
 func (r *Client) DecreaseSubscription(ctx context.Context, telegramId int64, trafficLimit, days int) (*time.Time, error) {
-	resp, err := r.client.Users().GetUserByTelegramId(ctx, remapi.UsersControllerGetUserByTelegramIdParams{TelegramId: strconv.FormatInt(telegramId, 10)})
+	resp, err := r.client.Users().GetUserByTelegramId(ctx, strconv.FormatInt(telegramId, 10))
 	if err != nil {
 		return nil, err
 	}
 
 	switch v := resp.(type) {
-	case *remapi.UsersControllerGetUserByTelegramIdNotFound:
+	case *remapi.NotFoundError:
 		return nil, errors.New("user in remnawave not found")
 	case *remapi.UsersResponse:
-		var existingUser *remapi.UsersResponseResponseItem
+		var existingUser *remapi.User
 		for _, panelUser := range v.GetResponse() {
 			if strings.Contains(panelUser.Username, fmt.Sprintf("_%d", telegramId)) {
 				existingUser = &panelUser
@@ -125,18 +116,18 @@ func (r *Client) DecreaseSubscription(ctx context.Context, telegramId int64, tra
 	}
 }
 
-func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
-	resp, err := r.client.UsersControllerGetUserByTelegramId(ctx, remapi.UsersControllerGetUserByTelegramIdParams{TelegramId: strconv.FormatInt(telegramId, 10)})
+func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.User, error) {
+	resp, err := r.client.Users().GetUserByTelegramId(ctx, strconv.FormatInt(telegramId, 10))
 	if err != nil {
 		return nil, err
 	}
 
 	switch v := resp.(type) {
 
-	case *remapi.UsersControllerGetUserByTelegramIdNotFound:
+	case *remapi.NotFoundError:
 		return r.createUser(ctx, customerId, telegramId, trafficLimit, days, isTrialUser)
 	case *remapi.UsersResponse:
-		var existingUser *remapi.UsersResponseResponseItem
+		var existingUser *remapi.User
 		for _, panelUser := range v.GetResponse() {
 			if strings.Contains(panelUser.Username, fmt.Sprintf("_%d", telegramId)) {
 				existingUser = &panelUser
@@ -151,16 +142,16 @@ func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, teleg
 	}
 }
 
-func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersResponseResponseItem, trafficLimit int, days int) (*remapi.UserResponseResponse, error) {
+func (r *Client) updateUser(ctx context.Context, existingUser *remapi.User, trafficLimit int, days int) (*remapi.User, error) {
 
 	newExpire := getNewExpire(days, existingUser.ExpireAt)
 
-	resp, err := r.client.InternalSquadControllerGetInternalSquads(ctx)
+	resp, err := r.client.InternalSquad().GetInternalSquads(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	squads := resp.(*remapi.GetInternalSquadsResponseDto).GetResponse()
+	squads := resp.(*remapi.InternalSquadsResponse).GetResponse()
 
 	selectedSquads := config.SquadUUIDs()
 
@@ -204,11 +195,11 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 		username = ""
 	}
 
-	updateUser, err := r.client.UsersControllerUpdateUser(ctx, userUpdate)
+	updateUser, err := r.client.Users().UpdateUser(ctx, userUpdate)
 	if err != nil {
 		return nil, err
 	}
-	if value, ok := updateUser.(*remapi.UsersControllerUpdateUserInternalServerError); ok {
+	if value, ok := updateUser.(*remapi.InternalServerError); ok {
 		return nil, errors.New("error while updating user. message: " + value.GetMessage().Value + ". code: " + value.GetErrorCode().Value)
 	}
 
@@ -217,16 +208,16 @@ func (r *Client) updateUser(ctx context.Context, existingUser *remapi.UsersRespo
 	return &updateUser.(*remapi.UserResponse).Response, nil
 }
 
-func (r *Client) createUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.UserResponseResponse, error) {
+func (r *Client) createUser(ctx context.Context, customerId int64, telegramId int64, trafficLimit int, days int, isTrialUser bool) (*remapi.User, error) {
 	expireAt := time.Now().UTC().AddDate(0, 0, days)
 	username := generateUsername(customerId, telegramId)
 
-	resp, err := r.client.InternalSquadControllerGetInternalSquads(ctx)
+	resp, err := r.client.InternalSquad().GetInternalSquads(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	squads := resp.(*remapi.GetInternalSquadsResponseDto).GetResponse()
+	squads := resp.(*remapi.InternalSquadsResponse).GetResponse()
 
 	selectedSquads := config.SquadUUIDs()
 	if isTrialUser {
@@ -284,7 +275,7 @@ func (r *Client) createUser(ctx context.Context, customerId int64, telegramId in
 		tgUsername = ""
 	}
 
-	userCreate, err := r.client.UsersControllerCreateUser(ctx, &createUserRequestDto)
+	userCreate, err := r.client.Users().CreateUser(ctx, &createUserRequestDto)
 	if err != nil {
 		return nil, err
 	}
