@@ -127,6 +127,9 @@ func (r *Client) CreateOrUpdateUser(ctx context.Context, customerId int64, teleg
 	case *remapi.NotFoundError:
 		return r.createUser(ctx, customerId, telegramId, trafficLimit, days, isTrialUser)
 	case *remapi.UsersResponse:
+		if len(v.GetResponse()) == 0 {
+			return r.createUser(ctx, customerId, telegramId, trafficLimit, days, isTrialUser)
+		}
 		var existingUser *remapi.User
 		for _, panelUser := range v.GetResponse() {
 			if strings.Contains(panelUser.Username, fmt.Sprintf("_%d", telegramId)) {
