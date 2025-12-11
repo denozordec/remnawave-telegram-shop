@@ -127,7 +127,7 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 				},
 			},
 			globalEnabled: false,
-			expected:      "mobile", // Даже при отключенной настройке, Web App остается мобильным
+			expected:      "desktop", // При отключенной глобальной настройке возвращаем desktop
 		},
 		{
 			name: "Regular message without WebApp, global enabled",
@@ -202,13 +202,13 @@ func TestDetectPlatformFromUpdate(t *testing.T) {
 			name:          "Nil update, global disabled",
 			update:        nil,
 			globalEnabled: false,
-			expected:      "desktop",
+			expected:      "unknown", // nil update возвращает unknown
 		},
 		{
 			name:          "Nil update, global enabled",
 			update:        nil,
 			globalEnabled: true,
-			expected:      "mobile", // Когда глобальная настройка включена, предполагаем мобильное устройство
+			expected:      "unknown", // nil update возвращает unknown
 		},
 	}
 

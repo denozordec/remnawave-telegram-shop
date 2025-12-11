@@ -1,14 +1,16 @@
 package config
 
 import (
-	"github.com/go-telegram/bot/models"
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/go-telegram/bot/models"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
 type config struct {
@@ -16,6 +18,7 @@ type config struct {
 	price1, price3, price6, price12                           int
 	starsPrice1, starsPrice3, starsPrice6, starsPrice12       int
 	remnawaveUrl, remnawaveToken, remnawaveMode, remnawaveTag string
+	defaultLanguage                                           string
 	databaseURL                                               string
 	cryptoPayURL, cryptoPayToken                              string
 	botURL                                                    string
@@ -31,6 +34,7 @@ type config struct {
 	isTelegramStarsEnabled                                    bool
 	adminTelegramId                                           int64
 	trialDays                                                 int
+	trialRemnawaveTag                                         string
 	squadUUIDs                                                map[uuid.UUID]uuid.UUID
 	referralDays                                              int
 	miniApp                                                   string
@@ -38,14 +42,33 @@ type config struct {
 	healthCheckPort                                           int
 	tributeWebhookUrl, tributeAPIKey, tributePaymentUrl       string
 	isWebAppLinkEnabled                                       bool
-	xApiKey                                                   string
 	daysInMonth                                               int
+	externalSquadUUID                                         uuid.UUID
+	blockedTelegramIds                                        map[int64]bool
+	whitelistedTelegramIds                                    map[int64]bool
+	requirePaidPurchaseForStars                               bool
+	trialInternalSquads                                       map[uuid.UUID]uuid.UUID
+	trialExternalSquadUUID                                    uuid.UUID
+	remnawaveHeaders                                          map[string]string
+	trialTrafficLimitResetStrategy                            string
+	trafficLimitResetStrategy                                 string
 }
 
 var conf config
 
 func RemnawaveTag() string {
 	return conf.remnawaveTag
+}
+
+func TrialRemnawaveTag() string {
+	if conf.trialRemnawaveTag != "" {
+		return conf.trialRemnawaveTag
+	}
+	return conf.remnawaveTag
+}
+
+func DefaultLanguage() string {
+	return conf.defaultLanguage
 }
 func GetTributeWebHookUrl() string {
 	return conf.tributeWebhookUrl
@@ -68,6 +91,28 @@ func GetMiniAppURL() string {
 
 func SquadUUIDs() map[uuid.UUID]uuid.UUID {
 	return conf.squadUUIDs
+}
+
+func GetBlockedTelegramIds() map[int64]bool {
+	return conf.blockedTelegramIds
+}
+
+func GetWhitelistedTelegramIds() map[int64]bool {
+	return conf.whitelistedTelegramIds
+}
+
+func TrialInternalSquads() map[uuid.UUID]uuid.UUID {
+	if conf.trialInternalSquads != nil && len(conf.trialInternalSquads) > 0 {
+		return conf.trialInternalSquads
+	}
+	return conf.squadUUIDs
+}
+
+func TrialExternalSquadUUID() uuid.UUID {
+	if conf.trialExternalSquadUUID != uuid.Nil {
+		return conf.trialExternalSquadUUID
+	}
+	return conf.externalSquadUUID
 }
 
 func TrialTrafficLimit() int {
@@ -119,6 +164,10 @@ func Price12() int {
 
 func DaysInMonth() int {
 	return conf.daysInMonth
+}
+
+func ExternalSquadUUID() uuid.UUID {
+	return conf.externalSquadUUID
 }
 
 func Price(month int) int {
@@ -202,6 +251,10 @@ func IsTelegramStarsEnabled() bool {
 	return conf.isTelegramStarsEnabled
 }
 
+func RequirePaidPurchaseForStars() bool {
+	return conf.requirePaidPurchaseForStars
+}
+
 func GetAdminTelegramId() int64 {
 	return conf.adminTelegramId
 }
@@ -220,7 +273,7 @@ func IsWebAppLinkEnabledForPlatform(platform string) bool {
 	if !conf.isWebAppLinkEnabled {
 		return false
 	}
-	
+
 	// Определяем платформу и возвращаем соответствующее значение
 	switch platform {
 	case "mobile":
@@ -235,11 +288,14 @@ func IsWebAppLinkEnabledForPlatform(platform string) bool {
 
 // DetectPlatformFromUpdate определяет платформу пользователя из Update
 func DetectPlatformFromUpdate(update *models.Update) string {
+	if update == nil {
+		return "unknown"
+	}
 	// Проверяем, есть ли WebAppInfo в сообщении или callback query
 	if update.Message != nil && update.Message.WebAppData != nil {
 		return "mobile"
 	}
-	
+
 	if update.CallbackQuery != nil {
 		// Проверяем, есть ли WebAppInfo в кнопках сообщения
 		// MaybeInaccessibleMessage содержит поле Message
@@ -255,37 +311,37 @@ func DetectPlatformFromUpdate(update *models.Update) string {
 			}
 		}
 	}
-	
+
 	// Если глобальная настройка отключена, считаем десктопом
 	if !conf.isWebAppLinkEnabled {
 		return "desktop"
 	}
-	
+
 	// Если глобальная настройка включена, пытаемся определить платформу
 	// по доступной информации
-	
+
 	// Проверяем, есть ли информация о платформе в сообщении
 	if update.Message != nil {
 		// Если пользователь отправил сообщение через Web App, он точно на мобильном
 		if update.Message.ViaBot != nil {
 			return "mobile"
 		}
-		
+
 		// Проверяем тип сообщения - некоторые типы более характерны для мобильных устройств
 		if update.Message.Contact != nil || update.Message.Location != nil {
 			// Контакты и геолокация чаще используются на мобильных устройствах
 			return "mobile"
 		}
-		
+
 		// Проверяем, есть ли признаки мобильного клиента
 		if update.Message.From != nil {
-			// Если пользователь использует мобильное приложение, 
+			// Если пользователь использует мобильное приложение,
 			// обычно это видно по типу сообщения или другим признакам
 			// К сожалению, Telegram API не предоставляет прямую информацию о платформе
 		}
 	}
-	
-	// По умолчанию, если глобальная настройка включена, 
+
+	// По умолчанию, если глобальная настройка включена,
 	// предполагаем что пользователь на мобильном устройстве
 	// так как Web App в основном используется на мобильных устройствах
 	return "mobile"
@@ -297,7 +353,7 @@ func DetectPlatformFromUserAgent(userAgent string) string {
 	if userAgent == "" {
 		return "unknown"
 	}
-	
+
 	// Простая эвристика для определения мобильных устройств
 	mobileKeywords := []string{"Mobile", "Android", "iPhone", "iPad", "Windows Phone"}
 	for _, keyword := range mobileKeywords {
@@ -305,12 +361,20 @@ func DetectPlatformFromUserAgent(userAgent string) string {
 			return "mobile"
 		}
 	}
-	
+
 	return "desktop"
 }
 
-func GetXApiKey() string {
-	return conf.xApiKey
+func RemnawaveHeaders() map[string]string {
+	return conf.remnawaveHeaders
+}
+
+func TrialTrafficLimitResetStrategy() string {
+	return conf.trialTrafficLimitResetStrategy
+}
+
+func TrafficLimitResetStrategy() string {
+	return conf.trafficLimitResetStrategy
 }
 
 const bytesInGigabyte = 1073741824
@@ -370,8 +434,6 @@ func InitConfig() {
 
 	conf.telegramToken = mustEnv("TELEGRAM_TOKEN")
 
-	conf.xApiKey = os.Getenv("X_API_KEY")
-
 	conf.isWebAppLinkEnabled = func() bool {
 		isWebAppLinkEnabled := os.Getenv("IS_WEB_APP_LINK") == "true"
 		return isWebAppLinkEnabled
@@ -381,7 +443,25 @@ func InitConfig() {
 
 	conf.remnawaveTag = envStringDefault("REMNAWAVE_TAG", "")
 
+	conf.trialRemnawaveTag = envStringDefault("TRIAL_REMNAWAVE_TAG", "")
+
+	conf.trialTrafficLimitResetStrategy = envStringDefault("TRIAL_TRAFFIC_LIMIT_RESET_STRATEGY", "MONTH")
+	conf.trafficLimitResetStrategy = envStringDefault("TRAFFIC_LIMIT_RESET_STRATEGY", "MONTH")
+
+	conf.defaultLanguage = envStringDefault("DEFAULT_LANGUAGE", "ru")
+
 	conf.daysInMonth = envIntDefault("DAYS_IN_MONTH", 30)
+
+	externalSquadUUIDStr := os.Getenv("EXTERNAL_SQUAD_UUID")
+	if externalSquadUUIDStr != "" {
+		parsedUUID, err := uuid.Parse(externalSquadUUIDStr)
+		if err != nil {
+			panic(fmt.Sprintf("invalid EXTERNAL_SQUAD_UUID format: %v", err))
+		}
+		conf.externalSquadUUID = parsedUUID
+	} else {
+		conf.externalSquadUUID = uuid.Nil
+	}
 
 	conf.trialTrafficLimit = mustEnvInt("TRIAL_TRAFFIC_LIMIT")
 
@@ -404,6 +484,8 @@ func InitConfig() {
 		conf.starsPrice12 = envIntDefault("STARS_PRICE_12", conf.price12)
 
 	}
+
+	conf.requirePaidPurchaseForStars = envBool("REQUIRE_PAID_PURCHASE_FOR_STARS")
 
 	conf.remnawaveUrl = mustEnv("REMNAWAVE_URL")
 
@@ -472,4 +554,100 @@ func InitConfig() {
 		conf.tributeAPIKey = mustEnv("TRIBUTE_API_KEY")
 		conf.tributePaymentUrl = mustEnv("TRIBUTE_PAYMENT_URL")
 	}
+
+	conf.blockedTelegramIds = func() map[int64]bool {
+		v := os.Getenv("BLOCKED_TELEGRAM_IDS")
+		if v != "" {
+			ids := strings.Split(v, ",")
+			var blockedMap = make(map[int64]bool)
+			for _, idStr := range ids {
+				id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+				if err != nil {
+					panic(fmt.Sprintf("invalid telegram ID in BLOCKED_TELEGRAM_IDS: %v", err))
+				}
+				blockedMap[id] = true
+			}
+			slog.Info("Loaded blocked telegram IDs", "count", len(blockedMap))
+			return blockedMap
+		} else {
+			slog.Info("No blocked telegram IDs specified")
+			return map[int64]bool{}
+		}
+	}()
+
+	conf.whitelistedTelegramIds = func() map[int64]bool {
+		v := os.Getenv("WHITELISTED_TELEGRAM_IDS")
+		if v != "" {
+			ids := strings.Split(v, ",")
+			var whitelistedMap = make(map[int64]bool)
+			for _, idStr := range ids {
+				id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+				if err != nil {
+					panic(fmt.Sprintf("invalid telegram ID in WHITELISTED_TELEGRAM_IDS: %v", err))
+				}
+				whitelistedMap[id] = true
+			}
+			slog.Info("Loaded whitelisted telegram IDs", "count", len(whitelistedMap))
+			return whitelistedMap
+		} else {
+			slog.Info("No whitelisted telegram IDs specified")
+			return map[int64]bool{}
+		}
+	}()
+
+	conf.trialInternalSquads = func() map[uuid.UUID]uuid.UUID {
+		v := os.Getenv("TRIAL_INTERNAL_SQUADS")
+		if v != "" {
+			uuids := strings.Split(v, ",")
+			var trialSquadsMap = make(map[uuid.UUID]uuid.UUID)
+			for _, value := range uuids {
+				parsedUUID, err := uuid.Parse(strings.TrimSpace(value))
+				if err != nil {
+					panic(fmt.Sprintf("invalid UUID in TRIAL_INTERNAL_SQUADS: %v", err))
+				}
+				trialSquadsMap[parsedUUID] = parsedUUID
+			}
+			slog.Info("Loaded trial internal squad UUIDs", "uuids", uuids)
+			return trialSquadsMap
+		} else {
+			slog.Info("No trial internal squads specified, will use regular SQUAD_UUIDS for trial users")
+			return map[uuid.UUID]uuid.UUID{}
+		}
+	}()
+
+	trialExternalSquadUUIDStr := os.Getenv("TRIAL_EXTERNAL_SQUAD_UUID")
+	if trialExternalSquadUUIDStr != "" {
+		parsedUUID, err := uuid.Parse(trialExternalSquadUUIDStr)
+		if err != nil {
+			panic(fmt.Sprintf("invalid TRIAL_EXTERNAL_SQUAD_UUID format: %v", err))
+		}
+		conf.trialExternalSquadUUID = parsedUUID
+		slog.Info("Loaded trial external squad UUID", "uuid", trialExternalSquadUUIDStr)
+	} else {
+		conf.trialExternalSquadUUID = uuid.Nil
+		slog.Info("No trial external squad specified, will use regular EXTERNAL_SQUAD_UUID for trial users")
+	}
+
+	conf.remnawaveHeaders = func() map[string]string {
+		v := os.Getenv("REMNAWAVE_HEADERS")
+		if v != "" {
+			headers := make(map[string]string)
+			pairs := strings.Split(v, ";")
+			for _, pair := range pairs {
+				parts := strings.SplitN(strings.TrimSpace(pair), ":", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					value := strings.TrimSpace(parts[1])
+					if key != "" && value != "" {
+						headers[key] = value
+					}
+				}
+			}
+			if len(headers) > 0 {
+				slog.Info("Loaded remnawave headers", "count", len(headers))
+				return headers
+			}
+		}
+		return map[string]string{}
+	}()
 }

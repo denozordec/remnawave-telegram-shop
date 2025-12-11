@@ -35,7 +35,7 @@ func (h Handler) BroadcastMenuHandler(ctx context.Context, b *bot.Bot, update *m
 	})
 	
 	if err != nil {
-		slog.Error("Error sending broadcast menu", err)
+		slog.Error("Error sending broadcast menu", "error", err)
 	}
 	
 	// Отвечаем на callback query
@@ -43,7 +43,7 @@ func (h Handler) BroadcastMenuHandler(ctx context.Context, b *bot.Bot, update *m
 		CallbackQueryID: callback.ID,
 	})
 	if err != nil {
-		slog.Error("Error answering callback query", err)
+		slog.Error("Error answering callback query", "error", err)
 	}
 }
 
@@ -86,7 +86,7 @@ func (h Handler) BroadcastTypeHandler(ctx context.Context, b *bot.Bot, update *m
 	})
 	
 	if err != nil {
-		slog.Error("Error editing broadcast type message", err)
+		slog.Error("Error editing broadcast type message", "error", err)
 	}
 	
 	// Отвечаем на callback query
@@ -94,7 +94,7 @@ func (h Handler) BroadcastTypeHandler(ctx context.Context, b *bot.Bot, update *m
 		CallbackQueryID: callback.ID,
 	})
 	if err != nil {
-		slog.Error("Error answering callback query", err)
+		slog.Error("Error answering callback query", "error", err)
 	}
 }
 
@@ -160,7 +160,7 @@ func (h Handler) BroadcastMessageHandler(ctx context.Context, b *bot.Bot, update
 	})
 	
 	if err != nil {
-		slog.Error("Error sending broadcast preview", err)
+		slog.Error("Error sending broadcast preview", "error", err)
 	}
 }
 
@@ -207,7 +207,7 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 			Text:            "❌ Ошибка: не удалось получить текст сообщения",
 		})
 		if err != nil {
-			slog.Error("Error answering callback query", err)
+			slog.Error("Error answering callback query", "error", err)
 		}
 		return
 	}
@@ -222,13 +222,13 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	}
 	
 	if err != nil {
-		slog.Error("Error sending broadcast", err)
+		slog.Error("Error sending broadcast", "error", err)
 		_, err = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
 			CallbackQueryID: callback.ID,
 			Text:            "❌ Ошибка при отправке рассылки",
 		})
 		if err != nil {
-			slog.Error("Error answering callback query", err)
+			slog.Error("Error answering callback query", "error", err)
 		}
 		return
 	}
@@ -253,7 +253,7 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 	})
 	
 	if err != nil {
-		slog.Error("Error editing broadcast result message", err)
+		slog.Error("Error editing broadcast result message", "error", err)
 	}
 	
 	// Отвечаем на callback query
@@ -262,7 +262,7 @@ func (h Handler) BroadcastConfirmHandler(ctx context.Context, b *bot.Bot, update
 		Text:            "✅ Рассылка выполнена",
 	})
 	if err != nil {
-		slog.Error("Error answering callback query", err)
+		slog.Error("Error answering callback query", "error", err)
 	}
 }
 
@@ -281,7 +281,7 @@ func (h Handler) BroadcastCancelHandler(ctx context.Context, b *bot.Bot, update 
 	})
 	
 	if err != nil {
-		slog.Error("Error editing broadcast cancel message", err)
+		slog.Error("Error editing broadcast cancel message", "error", err)
 	}
 	
 	// Отвечаем на callback query
@@ -290,7 +290,7 @@ func (h Handler) BroadcastCancelHandler(ctx context.Context, b *bot.Bot, update 
 		Text:            "❌ Рассылка отменена",
 	})
 	if err != nil {
-		slog.Error("Error answering callback query", err)
+		slog.Error("Error answering callback query", "error", err)
 	}
 }
 
