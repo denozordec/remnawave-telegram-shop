@@ -137,27 +137,32 @@ func (cr *CustomerRepository) FindByTelegramId(ctx context.Context, telegramId i
 }
 
 func (cr *CustomerRepository) Create(ctx context.Context, customer *Customer) (*Customer, error) {
-	buildInsert := sq.Insert("customer").
-		Columns("telegram_id", "expire_at", "language").
-		PlaceholderFormat(sq.Dollar).
-		Values(customer.TelegramID, customer.ExpireAt, customer.Language).
-		Suffix("RETURNING id, created_at")
-	sqlStr, args, err := buildInsert.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build insert query: %w", err)
+	return cr.FindOrCreate(ctx, customer)
+}
+
+func (cr *CustomerRepository) FindOrCreate(ctx context.Context, customer *Customer) (*Customer, error) {
+	query := `
+		INSERT INTO customer (telegram_id, expire_at, language)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (telegram_id) DO UPDATE SET telegram_id = customer.telegram_id
+		RETURNING id, telegram_id, expire_at, created_at, subscription_link, language
+	`
+
+	row := cr.pool.QueryRow(ctx, query, customer.TelegramID, customer.ExpireAt, customer.Language)
+	var result Customer
+	if err := row.Scan(
+		&result.ID,
+		&result.TelegramID,
+		&result.ExpireAt,
+		&result.CreatedAt,
+		&result.SubscriptionLink,
+		&result.Language,
+	); err != nil {
+		return nil, fmt.Errorf("failed to find or create customer: %w", err)
 	}
 
-	row := cr.pool.QueryRow(ctx, sqlStr, args...)
-	var id int64
-	var createdAt time.Time
-	if err := row.Scan(&id, &createdAt); err != nil {
-		return nil, fmt.Errorf("failed to insert customer: %w", err)
-	}
-	customer.ID = id
-	customer.CreatedAt = createdAt
-
-	slog.Info("user created in bot database", "telegramId", utils.MaskHalfInt64(customer.TelegramID))
-	return customer, nil
+	slog.Info("user found or created in bot database", "telegramId", utils.MaskHalfInt64(result.TelegramID))
+	return &result, nil
 }
 
 func (cr *CustomerRepository) UpdateFields(ctx context.Context, id int64, updates map[string]interface{}) error {
@@ -193,7 +198,7 @@ func (cr *CustomerRepository) UpdateFields(ctx context.Context, id int64, update
 
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("no customer found with id: %d", utils.MaskHalfInt64(id))
+		return fmt.Errorf("no customer found with id: %s", utils.MaskHalfInt64(id))
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -280,16 +285,16 @@ func (cr *CustomerRepository) UpdateBatch(ctx context.Context, customers []Custo
 	if len(customers) == 0 {
 		return nil
 	}
-	query := "UPDATE customer SET expire_at = c.expire_at, language = c.language, subscription_link = c.subscription_link FROM (VALUES "
+	query := "UPDATE customer SET expire_at = c.expire_at, subscription_link = c.subscription_link FROM (VALUES "
 	var args []interface{}
 	for i, cust := range customers {
 		if i > 0 {
 			query += ", "
 		}
-		query += fmt.Sprintf("($%d::bigint, $%d::timestamp, $%d::text, $%d::text)", i*4+1, i*4+2, i*4+3, i*4+4)
-		args = append(args, cust.TelegramID, cust.ExpireAt, cust.Language, cust.SubscriptionLink)
+		query += fmt.Sprintf("($%d::bigint, $%d::timestamp, $%d::text)", i*3+1, i*3+2, i*3+3)
+		args = append(args, cust.TelegramID, cust.ExpireAt, cust.SubscriptionLink)
 	}
-	query += ") AS c(telegram_id, expire_at, language, subscription_link) WHERE customer.telegram_id = c.telegram_id"
+	query += ") AS c(telegram_id, expire_at, subscription_link) WHERE customer.telegram_id = c.telegram_id"
 
 	tx, err := cr.pool.Begin(ctx)
 	if err != nil {
