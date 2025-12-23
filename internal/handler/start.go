@@ -171,14 +171,16 @@ func (h Handler) buildStartKeyboard(existingCustomer *database.Customer, langCod
 		inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
 			{Text: h.translation.GetText(langCode, "my_subscriptions_button"), CallbackData: CallbackMySubscriptions},
 		})
-		inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
 	}
 
-	// Кнопка покупки/добавления подписки → всегда бесплатная подписка
+	// Кнопка "Подключиться" + "Оживить Telegram" — показываем всегда
+	inlineKeyboard = append(inlineKeyboard, h.resolveConnectButton(langCode))
+
+	// Кнопка активации/добавления подписки
 	inlineKeyboard = append(inlineKeyboard, []models.InlineKeyboardButton{
 		{Text: h.translation.GetText(langCode, func() string {
 			if activeSubscriptionsCount > 0 { return "add_subscription_button" }
-			return "buy_button"
+			return "trial_button"
 		}()), CallbackData: CallbackTrial},
 	})
 
