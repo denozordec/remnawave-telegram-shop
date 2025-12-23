@@ -55,5 +55,6 @@
   "referral_bonus_subscription": "🎁 Referral Bonus",
   "referral_bonus_description": "Bonus subscription for inviting a friend",
   "trial_subscription_name": "🔥 Trial Subscription",
-  "trial_subscription_description": "Free trial subscription"
+  "trial_subscription_description": "Free trial subscription",
+  "tg_proxy_button": "💬 Revive Telegram"
 }

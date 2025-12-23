@@ -55,5 +55,6 @@
   "referral_bonus_subscription": "🎁 Реферальный бонус",
   "referral_bonus_description": "Бонусная подписка за приглашение друга",
   "trial_subscription_name": "🔥 Пробная подписка",
-  "trial_subscription_description": "Бесплатная пробная подписка"
+  "trial_subscription_description": "Бесплатная пробная подписка",
+  "tg_proxy_button": "💬 Оживить Telegram"
 }

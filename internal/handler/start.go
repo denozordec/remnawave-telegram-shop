@@ -148,6 +148,15 @@ func (h Handler) resolveConnectButton(lang string) []models.InlineKeyboardButton
 			{Text: h.translation.GetText(lang, "connect_button"), CallbackData: CallbackConnect},
 		}
 	}
+
+	// Добавляем кнопку "Оживить Telegram" если TG_PROXY_LINK задан
+	if config.TgProxyLink() != "" {
+		inlineKeyboard = append(inlineKeyboard, models.InlineKeyboardButton{
+			Text: h.translation.GetText(lang, "tg_proxy_button"),
+			URL:  config.TgProxyLink(),
+		})
+	}
+
 	return inlineKeyboard
 }
 
