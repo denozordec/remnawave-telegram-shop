@@ -52,6 +52,7 @@ type config struct {
 	remnawaveHeaders                                          map[string]string
 	trialTrafficLimitResetStrategy                            string
 	trafficLimitResetStrategy                                 string
+	tgProxyLink                                               string
 }
 
 var conf config
@@ -377,6 +378,10 @@ func TrafficLimitResetStrategy() string {
 	return conf.trafficLimitResetStrategy
 }
 
+func TgProxyLink() string {
+	return conf.tgProxyLink
+}
+
 const bytesInGigabyte = 1073741824
 
 func mustEnv(key string) string {
@@ -650,4 +655,6 @@ func InitConfig() {
 		}
 		return map[string]string{}
 	}()
+
+	conf.tgProxyLink = os.Getenv("TG_PROXY_LINK")
 }
