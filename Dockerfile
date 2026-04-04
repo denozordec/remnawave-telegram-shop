@@ -1,9 +1,9 @@
-FROM --platform=$BUILDPLATFORM golang:1.25.3-alpine AS modules
+FROM --platform=$BUILDPLATFORM golang:1.23.0-alpine AS modules
 WORKDIR /modules
 COPY go.mod go.sum ./
 RUN go mod download
 
-FROM --platform=$BUILDPLATFORM golang:1.25.3-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.23.0-alpine AS builder
 WORKDIR /app
 
 COPY --from=modules /go/pkg /go/pkg
@@ -12,6 +12,8 @@ COPY . .
 
 RUN apk update && apk add --no-cache ca-certificates tzdata
 RUN update-ca-certificates
+
+RUN go mod tidy
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -29,7 +31,6 @@ ARG COMMIT
 
 LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.revision="${COMMIT}"
-LABEL org.opencontainers.image.source="https://github.com/${GITHUB_REPOSITORY}"
 LABEL org.opencontainers.image.description="Remnawave Telegram Shop Bot"
 LABEL org.opencontainers.image.licenses="MIT"
 
