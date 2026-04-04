@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-telegram/bot/models"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
@@ -23,6 +22,7 @@ type config struct {
 	cryptoPayURL, cryptoPayToken                              string
 	botURL                                                    string
 	yookasaURL, yookasaShopId, yookasaSecretKey, yookasaEmail string
+	moynalogURL, moynalogUsername, moynalogPassword           string
 	trafficLimit, trialTrafficLimit                           int
 	feedbackURL                                               string
 	channelURL                                                string
@@ -32,6 +32,7 @@ type config struct {
 	isYookasaEnabled                                          bool
 	isCryptoEnabled                                           bool
 	isTelegramStarsEnabled                                    bool
+	isMoynalogEnabled                                         bool
 	adminTelegramId                                           int64
 	trialDays                                                 int
 	trialRemnawaveTag                                         string
@@ -203,6 +204,15 @@ func StarsPrice(month int) int {
 func TelegramToken() string {
 	return conf.telegramToken
 }
+
+func TelegramProxyURL() string {
+	return envStringDefault("TELEGRAM_PROXY_URL", "")
+}
+
+func MoynalogProxyURL() string {
+	return envStringDefault("MOYNALOG_PROXY_URL", "")
+}
+
 func RemnawaveUrl() string {
 	return conf.remnawaveUrl
 }
@@ -268,104 +278,6 @@ func IsWepAppLinkEnabled() bool {
 	return conf.isWebAppLinkEnabled
 }
 
-// IsWebAppLinkEnabledForPlatform определяет, нужно ли показывать Web App ссылку для конкретной платформы
-func IsWebAppLinkEnabledForPlatform(platform string) bool {
-	// Если глобальная настройка отключена, то Web App не показываем нигде
-	if !conf.isWebAppLinkEnabled {
-		return false
-	}
-
-	// Определяем платформу и возвращаем соответствующее значение
-	switch platform {
-	case "mobile":
-		return true
-	case "desktop":
-		return false
-	default:
-		// По умолчанию используем глобальную настройку
-		return conf.isWebAppLinkEnabled
-	}
-}
-
-// DetectPlatformFromUpdate определяет платформу пользователя из Update
-func DetectPlatformFromUpdate(update *models.Update) string {
-	if update == nil {
-		return "unknown"
-	}
-	// Проверяем, есть ли WebAppInfo в сообщении или callback query
-	if update.Message != nil && update.Message.WebAppData != nil {
-		return "mobile"
-	}
-
-	if update.CallbackQuery != nil {
-		// Проверяем, есть ли WebAppInfo в кнопках сообщения
-		// MaybeInaccessibleMessage содержит поле Message
-		if update.CallbackQuery.Message.Message != nil {
-			if update.CallbackQuery.Message.Message.ReplyMarkup != nil {
-				for _, row := range update.CallbackQuery.Message.Message.ReplyMarkup.InlineKeyboard {
-					for _, button := range row {
-						if button.WebApp != nil {
-							return "mobile"
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Если глобальная настройка отключена, считаем десктопом
-	if !conf.isWebAppLinkEnabled {
-		return "desktop"
-	}
-
-	// Если глобальная настройка включена, пытаемся определить платформу
-	// по доступной информации
-
-	// Проверяем, есть ли информация о платформе в сообщении
-	if update.Message != nil {
-		// Если пользователь отправил сообщение через Web App, он точно на мобильном
-		if update.Message.ViaBot != nil {
-			return "mobile"
-		}
-
-		// Проверяем тип сообщения - некоторые типы более характерны для мобильных устройств
-		if update.Message.Contact != nil || update.Message.Location != nil {
-			// Контакты и геолокация чаще используются на мобильных устройствах
-			return "mobile"
-		}
-
-		// Проверяем, есть ли признаки мобильного клиента
-		if update.Message.From != nil {
-			// Если пользователь использует мобильное приложение,
-			// обычно это видно по типу сообщения или другим признакам
-			// К сожалению, Telegram API не предоставляет прямую информацию о платформе
-		}
-	}
-
-	// По умолчанию, если глобальная настройка включена,
-	// предполагаем что пользователь на мобильном устройстве
-	// так как Web App в основном используется на мобильных устройствах
-	return "mobile"
-}
-
-// DetectPlatformFromUserAgent пытается определить платформу по User Agent
-// К сожалению, Telegram Bot API не предоставляет User Agent
-func DetectPlatformFromUserAgent(userAgent string) string {
-	if userAgent == "" {
-		return "unknown"
-	}
-
-	// Простая эвристика для определения мобильных устройств
-	mobileKeywords := []string{"Mobile", "Android", "iPhone", "iPad", "Windows Phone"}
-	for _, keyword := range mobileKeywords {
-		if strings.Contains(userAgent, keyword) {
-			return "mobile"
-		}
-	}
-
-	return "desktop"
-}
-
 func RemnawaveHeaders() map[string]string {
 	return conf.remnawaveHeaders
 }
@@ -380,6 +292,22 @@ func TrafficLimitResetStrategy() string {
 
 func TgProxyLink() string {
 	return conf.tgProxyLink
+}
+
+func IsMoynalogEnabled() bool {
+	return conf.isMoynalogEnabled
+}
+
+func MoynalogUrl() string {
+	return conf.moynalogURL
+}
+
+func MoynalogUsername() string {
+	return conf.moynalogUsername
+}
+
+func MoynalogPassword() string {
+	return conf.moynalogPassword
 }
 
 const bytesInGigabyte = 1073741824
@@ -487,7 +415,6 @@ func InitConfig() {
 		conf.starsPrice3 = envIntDefault("STARS_PRICE_3", conf.price3)
 		conf.starsPrice6 = envIntDefault("STARS_PRICE_6", conf.price6)
 		conf.starsPrice12 = envIntDefault("STARS_PRICE_12", conf.price12)
-
 	}
 
 	conf.requirePaidPurchaseForStars = envBool("REQUIRE_PAID_PURCHASE_FOR_STARS")
@@ -657,4 +584,11 @@ func InitConfig() {
 	}()
 
 	conf.tgProxyLink = os.Getenv("TG_PROXY_LINK")
+
+	conf.isMoynalogEnabled = envBool("MOYNALOG_ENABLED")
+	if conf.isMoynalogEnabled {
+		conf.moynalogURL = envStringDefault("MOYNALOG_URL", "https://moynalog.ru/api/v1")
+		conf.moynalogUsername = mustEnv("MOYNALOG_USERNAME")
+		conf.moynalogPassword = mustEnv("MOYNALOG_PASSWORD")
+	}
 }
